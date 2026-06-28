@@ -18,6 +18,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -63,10 +64,10 @@ public final class MSurvivalKeys extends JavaPlugin implements Listener {
             return true;
         });
 
-        getCommand("keyitem").setExecutor((sender, command, label, args) -> {
+        getCommand("menuitem").setExecutor((sender, command, label, args) -> {
             if (sender instanceof Player player) {
                 player.getInventory().addItem(createMenuCompass());
-                player.sendMessage(msg("keyitem-given"));
+                player.sendMessage(msg("menuitem-given"));
             }
             return true;
         });
@@ -181,6 +182,49 @@ public final class MSurvivalKeys extends JavaPlugin implements Listener {
     }
 
     @EventHandler
+    public void onJoinGiveMenuItem(PlayerJoinEvent event) {
+        if (!getConfig().getBoolean("menu-item.give-on-join", true)) {
+            return;
+        }
+
+        Player player = event.getPlayer();
+
+        Bukkit.getScheduler().runTaskLater(this, () -> {
+            if (!player.isOnline()) {
+                return;
+            }
+
+            if (hasMenuItem(player)) {
+                return;
+            }
+
+            int slot = getConfig().getInt("menu-item.slot", 4);
+            ItemStack item = createMenuCompass();
+
+            if (slot >= 0 && slot <= 35) {
+                ItemStack current = player.getInventory().getItem(slot);
+
+                if (current == null || current.getType() == Material.AIR || isMenuCompass(current)) {
+                    player.getInventory().setItem(slot, item);
+                    return;
+                }
+            }
+
+            player.getInventory().addItem(item);
+        }, 20L);
+    }
+
+    private boolean hasMenuItem(Player player) {
+        for (ItemStack item : player.getInventory().getContents()) {
+            if (isMenuCompass(item)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    @EventHandler
     public void onItemClick(PlayerInteractEvent event) {
         Action action = event.getAction();
 
@@ -200,8 +244,6 @@ public final class MSurvivalKeys extends JavaPlugin implements Listener {
 
         if (key != null) {
             event.setCancelled(true);
-            removeOneItem(event.getPlayer(), item);
-            addKeys(event.getPlayer().getName(), key, 1);
             startKeyAnimation(event.getPlayer(), key);
         }
     }
@@ -341,7 +383,7 @@ public final class MSurvivalKeys extends JavaPlugin implements Listener {
             List<String> lore = new ArrayList<>();
             lore.add(color("&8MSurvival Key"));
             lore.add("");
-            lore.add(color("&7Posiadasz: &e" + getKeys(player.getName(), key)));
+            lore.add(color("&7Posiadasz: &e" + getTotalKeys(player, key)));
             lore.add(color(getConfig().getString("keys." + key + ".price-info", "&7Brak informacji.")));
             lore.add("");
             lore.add(color("&eKliknij, aby użyć."));
@@ -489,12 +531,10 @@ public final class MSurvivalKeys extends JavaPlugin implements Listener {
             return;
         }
 
-        if (getKeys(player.getName(), key) <= 0) {
+        if (!takeOneKey(player, key)) {
             player.sendMessage(msg("no-keys"));
             return;
         }
-
-        setKeys(player.getName(), key, getKeys(player.getName(), key) - 1);
 
         if (getConfig().getBoolean("keys." + key + ".owner-set", false)) {
             giveOwnerSet(player);
@@ -532,6 +572,12 @@ public final class MSurvivalKeys extends JavaPlugin implements Listener {
 
         player.getInventory().addItem(item(Material.NETHERITE_SHOVEL, "&b&lŁopata MILEKZ", List.of("&8Narzędzie Właściciela"),
                 new String[][]{{"efficiency", "5"}, {"silk_touch", "1"}, {"unbreaking", "3"}, {"mending", "1"}}));
+
+        player.getInventory().addItem(item(Material.NETHERITE_HOE, "&d&lMotyczka MILEKZ", List.of("&8Narzędzie Właściciela"),
+                new String[][]{{"efficiency", "5"}, {"silk_touch", "1"}, {"unbreaking", "3"}, {"mending", "1"}}));
+
+        player.getInventory().addItem(item(Material.BOW, "&e&lŁuk Boga", List.of("&8Broń Właściciela", "&7Najlepszy łuk MSurvival"),
+                new String[][]{{"power", "5"}, {"punch", "2"}, {"flame", "1"}, {"infinity", "1"}, {"unbreaking", "3"}, {"mending", "1"}}));
 
         player.getInventory().addItem(item(Material.TRIDENT, "&3&lTrójząb MILEKZ", List.of("&8Broń Właściciela"),
                 new String[][]{{"impaling", "5"}, {"loyalty", "3"}, {"channeling", "1"}, {"unbreaking", "3"}, {"mending", "1"}}));
@@ -619,6 +665,56 @@ public final class MSurvivalKeys extends JavaPlugin implements Listener {
         }
     }
 
+    private boolean takeOneKey(Player player, String key) {
+        int virtualKeys = getKeys(player.getName(), key);
+
+        if (virtualKeys > 0) {
+            setKeys(player.getName(), key, virtualKeys - 1);
+            return true;
+        }
+
+        return removePhysicalKey(player, key);
+    }
+
+    private int getTotalKeys(Player player, String key) {
+        return getKeys(player.getName(), key) + countPhysicalKeys(player, key);
+    }
+
+    private int countPhysicalKeys(Player player, String key) {
+        int amount = 0;
+
+        for (ItemStack item : player.getInventory().getContents()) {
+            if (key.equals(getKeyFromItem(item))) {
+                amount += item.getAmount();
+            }
+        }
+
+        return amount;
+    }
+
+    private boolean removePhysicalKey(Player player, String key) {
+        ItemStack[] contents = player.getInventory().getContents();
+
+        for (int i = 0; i < contents.length; i++) {
+            ItemStack item = contents[i];
+
+            if (!key.equals(getKeyFromItem(item))) {
+                continue;
+            }
+
+            if (item.getAmount() <= 1) {
+                player.getInventory().setItem(i, null);
+            } else {
+                item.setAmount(item.getAmount() - 1);
+                player.getInventory().setItem(i, item);
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
     private void addKeys(String name, String key, int amount) {
         setKeys(name, key, getKeys(name, key) + amount);
     }
@@ -702,4 +798,3 @@ public final class MSurvivalKeys extends JavaPlugin implements Listener {
         return sec + "s";
     }
 }
-
