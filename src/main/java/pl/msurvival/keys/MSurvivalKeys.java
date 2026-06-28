@@ -290,6 +290,12 @@ public final class MSurvivalKeys extends JavaPlugin implements Listener {
             return;
         }
 
+        if (action.equals("weekly")) {
+            player.closeInventory();
+            claimWeekly(player);
+            return;
+        }
+
         if (action.startsWith("usekey:")) {
             player.closeInventory();
             startKeyAnimation(player, action.substring(7));
@@ -367,6 +373,34 @@ public final class MSurvivalKeys extends JavaPlugin implements Listener {
 
             meta.setLore(lore);
             meta.getPersistentDataContainer().set(menuActionKey, PersistentDataType.STRING, action);
+            item.setItemMeta(meta);
+        }
+
+        inv.setItem(slot, item);
+    }
+
+    private void addWeeklyKeyItem(Inventory inv, Player player) {
+        int slot = getConfig().getInt("weekly-menu.slot", 4);
+        ItemStack item = new ItemStack(parseMaterial(getConfig().getString("weekly-menu.material", "CHEST")));
+        ItemMeta meta = item.getItemMeta();
+
+        if (meta != null) {
+            meta.setDisplayName(color(getConfig().getString("weekly-menu.name", "&a&lOdbierz cotygodniowy klucz")));
+
+            List<String> lore = new ArrayList<>();
+            long cooldown = getConfig().getLong("settings.cooldown-seconds", 604800L) * 1000L;
+            long last = data.getLong(path(player.getName()) + ".lastClaim", 0L);
+            long left = Math.max(0L, cooldown - (System.currentTimeMillis() - last));
+            boolean canClaim = last <= 0 || left <= 0L;
+
+            for (String line : getConfig().getStringList("weekly-menu.lore")) {
+                lore.add(color(line
+                        .replace("%status%", canClaim ? "&aDostępny" : "&cZa " + formatTime(left))
+                        .replace("%key_name%", getKeyDisplay(getConfig().getString("settings.default-key", "klasyczny")))));
+            }
+
+            meta.setLore(lore);
+            meta.getPersistentDataContainer().set(menuActionKey, PersistentDataType.STRING, "weekly");
             item.setItemMeta(meta);
         }
 
