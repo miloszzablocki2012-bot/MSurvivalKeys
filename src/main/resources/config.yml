@@ -16,6 +16,18 @@ menu-item:
     - ""
     - "&7IP: &6msurvival.6mc.pl"
 
+weekly-menu:
+  slot: 4
+  material: CHEST
+  name: "&a&lOdbierz cotygodniowy klucz"
+  lore:
+    - "&8Darmowa nagroda"
+    - ""
+    - "&7Klucz: %key_name%"
+    - "&7Status: %status%"
+    - ""
+    - "&eKliknij, aby odebrać."
+
 key-item:
   material: LIGHTNING_ROD
   name: "&6&l%key_name%"
@@ -40,8 +52,8 @@ gui:
       name: "&e&lLobby"
       lore:
         - "&7Powrót do lobby serwera."
-        - "&eKliknij, aby przejść do lobby."
-      command: "lobby %player%"
+        - "&8Do ustawienia po dodaniu lobby."
+      command: "spawn %player%"
 
     survival:
       slot: 13
@@ -50,7 +62,7 @@ gui:
       lore:
         - "&7Główny tryb serwera."
         - "&7Buduj, kop, walcz i rozwijaj się."
-      command: "survival %player%"
+      command: "spawn %player%"
 
     keys:
       slot: 15
@@ -73,7 +85,7 @@ messages:
   no-permission: "&cNie masz uprawnień."
   claimed: "&aOdebrałeś cotygodniowy klucz: &e%key_name%&a. Masz: &e%amount%&a."
   cooldown: "&cCotygodniowy klucz możesz odebrać za: &e%time%&c."
-  no-keys: "&cNie masz tego klucza. Odbierz &e/weeklykey &club kup w sklepie."
+  no-keys: "&cNie masz tego klucza. Odbierz go w &e/menu &club kup w sklepie."
   used: "&aUżyto klucza: &e%key_name%&a!"
   menuitem-given: "&aOtrzymałeś item menu."
   key-given-item: "&aOtrzymałeś fizyczny klucz: &e%key_name%&a."
@@ -148,6 +160,9 @@ keys:
       - "give %player% arrow 64"
       - "give %player% golden_apple 10"
       - "give %player% ender_pearl 16"
+      - "give %player% diamond_hoe 1"
+      - "give %player% bow 1"
+      - "give %player% arrow 64"
 
   legendarny:
     display: "&6&lKlucz Legendarny"

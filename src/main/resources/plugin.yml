@@ -1,5 +1,5 @@
 name: MSurvivalKeys
-version: 3.1
+version: 3.2
 main: pl.msurvival.keys.MSurvivalKeys
 api-version: '1.21'
 author: Milekz
@@ -11,10 +11,6 @@ commands:
   menuitem:
     description: Daje item menu
     usage: /menuitem
-  weeklykey:
-    description: Odbiera cotygodniowy klucz
-    usage: /weeklykey
-    aliases: [klucz, weekly]
   key:
     description: Używa klucza
     usage: /key use <typ>
