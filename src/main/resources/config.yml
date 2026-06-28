@@ -1,0 +1,180 @@
+settings:
+  cooldown-seconds: 604800
+  default-key: klasyczny
+
+menu-item:
+  enabled: true
+  material: COMPASS
+  slot: 4
+  name: "&6&lMSurvival Menu"
+  lore:
+    - "&8Nawigacja serwera"
+    - ""
+    - "&7Kliknij PPM, aby otworzyć menu."
+    - "&eLobby &8• &aSurvival &8• &6Klucze"
+    - ""
+    - "&7IP: &6msurvival.6mc.pl"
+
+key-item:
+  material: LIGHTNING_ROD
+  name: "&6&l%key_name%"
+  lore:
+    - "&8MSurvival Key"
+    - ""
+    - "&7Typ: &f%key_name%"
+    - "&7Użycie: &e/key use %key%"
+    - ""
+    - "&6Kliknij PPM, aby użyć."
+
+gui:
+  main-title: "&6&lMSURVIVAL MENU"
+  keys-title: "&6&lKLUCZE SERWERA"
+  size: 27
+  filler: BLACK_STAINED_GLASS_PANE
+
+  items:
+    lobby:
+      slot: 11
+      material: NETHER_STAR
+      name: "&e&lLobby"
+      lore:
+        - "&7Powrót do lobby serwera."
+        - "&8Do ustawienia po dodaniu lobby."
+      command: "spawn %player%"
+
+    survival:
+      slot: 13
+      material: GRASS_BLOCK
+      name: "&a&lSurvival"
+      lore:
+        - "&7Główny tryb serwera."
+        - "&7Buduj, kop, walcz i rozwijaj się."
+      command: "spawn %player%"
+
+    keys:
+      slot: 15
+      material: LIGHTNING_ROD
+      name: "&6&lKlucze"
+      lore:
+        - "&7Odbieraj i używaj kluczy."
+        - "&eKliknij, aby otworzyć menu kluczy."
+
+effects:
+  enabled: true
+  sound: ENTITY_PLAYER_LEVELUP
+  title: "&6&lKLUCZ OTWARTY"
+  subtitle: "&7Użyto: &e%key_name%"
+  fireworks: true
+  animation: true
+
+messages:
+  prefix: "&6&lMSurvivalKeys &8» &r"
+  no-permission: "&cNie masz uprawnień."
+  claimed: "&aOdebrałeś cotygodniowy klucz: &e%key_name%&a. Masz: &e%amount%&a."
+  cooldown: "&cCotygodniowy klucz możesz odebrać za: &e%time%&c."
+  no-keys: "&cNie masz tego klucza. Odbierz &e/weeklykey &club kup w sklepie."
+  used: "&aUżyto klucza: &e%key_name%&a!"
+  keyitem-given: "&aOtrzymałeś item menu."
+  key-given-item: "&aOtrzymałeś fizyczny klucz: &e%key_name%&a."
+  admin-give: "&aDodano &e%amount%x %key_name% &adla &e%player%&a."
+  admin-reset: "&aZresetowano cooldown gracza &e%player%&a."
+  reload: "&aPrzeładowano config."
+  usage-key: "&cUżycie: &e/key use <typ>"
+  usage-admin: "&cUżycie: &e/keyadmin <give|reset|reload|item> <gracz> [typ] [ilość]"
+  unknown-key: "&cNie ma takiego klucza."
+
+keys:
+  klasyczny:
+    display: "&f&lKlucz Klasyczny"
+    material: LIGHTNING_ROD
+    price-info: "&7Dostępny za darmo co tydzień."
+    rewards:
+      - "give %player% copper_ingot 32"
+      - "give %player% iron_ingot 16"
+      - "give %player% bread 32"
+      - "give %player% shield 1"
+      - "give %player% stone_sword 1"
+      - "give %player% stone_pickaxe 1"
+
+  zelazny:
+    display: "&7&lKlucz Żelazny"
+    material: LIGHTNING_ROD
+    price-info: "&7Lepszy start survivalowy."
+    rewards:
+      - "give %player% iron_helmet 1"
+      - "give %player% iron_chestplate 1"
+      - "give %player% iron_leggings 1"
+      - "give %player% iron_boots 1"
+      - "give %player% iron_sword 1"
+      - "give %player% iron_pickaxe 1"
+      - "give %player% golden_apple 2"
+      - "give %player% diamond 6"
+
+  diamentowy:
+    display: "&b&lKlucz Diamentowy"
+    material: LIGHTNING_ROD
+    price-info: "&7Dobry klucz premium."
+    rewards:
+      - "give %player% diamond_helmet 1"
+      - "give %player% diamond_chestplate 1"
+      - "give %player% diamond_leggings 1"
+      - "give %player% diamond_boots 1"
+      - "give %player% diamond_sword 1"
+      - "give %player% diamond_pickaxe 1"
+      - "give %player% golden_apple 6"
+      - "give %player% emerald 16"
+
+  epic:
+    display: "&5&lKlucz Epic"
+    material: LIGHTNING_ROD
+    price-info: "&7Mocny set z enchantami."
+    rewards:
+      - "give %player% diamond_helmet 1"
+      - "give %player% diamond_chestplate 1"
+      - "give %player% diamond_leggings 1"
+      - "give %player% diamond_boots 1"
+      - "give %player% diamond_sword 1"
+      - "give %player% diamond_pickaxe 1"
+      - "give %player% golden_apple 10"
+      - "give %player% ender_pearl 16"
+
+  legendarny:
+    display: "&6&lKlucz Legendarny"
+    material: LIGHTNING_ROD
+    price-info: "&7Bardzo dobry klucz."
+    rewards:
+      - "give %player% netherite_helmet 1"
+      - "give %player% netherite_chestplate 1"
+      - "give %player% netherite_leggings 1"
+      - "give %player% netherite_boots 1"
+      - "give %player% netherite_sword 1"
+      - "give %player% netherite_pickaxe 1"
+      - "give %player% golden_apple 16"
+      - "give %player% netherite_ingot 4"
+
+  mityczny:
+    display: "&d&lKlucz Mityczny"
+    material: LIGHTNING_ROD
+    price-info: "&7Najwyższy poziom premium."
+    rewards:
+      - "give %player% netherite_helmet 1"
+      - "give %player% netherite_chestplate 1"
+      - "give %player% netherite_leggings 1"
+      - "give %player% netherite_boots 1"
+      - "give %player% netherite_sword 1"
+      - "give %player% netherite_pickaxe 1"
+      - "give %player% golden_apple 24"
+      - "give %player% enchanted_golden_apple 2"
+      - "give %player% netherite_ingot 8"
+
+  boski:
+    display: "&4&lKlucz Boski"
+    material: LIGHTNING_ROD
+    price-info: "&cTOP klucz z setem Właściciela."
+    owner-set: true
+    rewards:
+      - "give %player% golden_apple 64"
+      - "give %player% enchanted_golden_apple 16"
+      - "give %player% firework_rocket 64"
+      - "give %player% netherite_ingot 16"
+      - "give %player% totem_of_undying 5"

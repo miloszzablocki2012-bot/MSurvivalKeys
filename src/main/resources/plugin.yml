@@ -1,0 +1,28 @@
+name: MSurvivalKeys
+version: 3.0
+main: pl.msurvival.keys.MSurvivalKeys
+api-version: '1.21'
+author: Milekz
+
+commands:
+  menu:
+    description: Otwiera menu serwera
+    usage: /menu
+  keyitem:
+    description: Daje item menu
+    usage: /keyitem
+  weeklykey:
+    description: Odbiera cotygodniowy klucz
+    usage: /weeklykey
+    aliases: [klucz, weekly]
+  key:
+    description: Używa klucza
+    usage: /key use <typ>
+  keyadmin:
+    description: Administracja kluczami
+    usage: /keyadmin <give|reset|reload|item> <gracz> [typ] [ilość]
+
+permissions:
+  msurvivalkeys.admin:
+    description: Dostęp do administracji kluczami
+    default: op
