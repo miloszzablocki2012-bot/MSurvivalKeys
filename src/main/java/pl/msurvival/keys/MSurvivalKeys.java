@@ -10,6 +10,7 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.*;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -92,7 +93,7 @@ public final class MSurvivalKeys extends JavaPlugin implements Listener {
 
             if (mode.equals("give")) {
                 setKeys(player, key, getKeys(player, key) + amount);
-                s.sendMessage(msg("admin-give").replace("%key%", display(key)).replace("%player%", player));
+                s.sendMessage(msg("admin-give").replace("%key%", display(key)).replace("%player%", player).replace("%amount%", String.valueOf(amount)));
                 return true;
             }
 
@@ -103,7 +104,7 @@ public final class MSurvivalKeys extends JavaPlugin implements Listener {
                     return true;
                 }
                 target.getInventory().addItem(keyItem(key, amount));
-                s.sendMessage(msg("admin-item").replace("%key%", display(key)).replace("%player%", player));
+                s.sendMessage(msg("admin-item").replace("%key%", display(key)).replace("%player%", player).replace("%amount%", String.valueOf(amount)));
                 return true;
             }
 
@@ -120,7 +121,7 @@ public final class MSurvivalKeys extends JavaPlugin implements Listener {
         if (key == null) return;
 
         event.setCancelled(true);
-        openKitByKey(event.getPlayer(), key);
+        event.getPlayer().sendMessage(msg("key-right-click-disabled"));
     }
 
     @EventHandler
@@ -301,22 +302,135 @@ public final class MSurvivalKeys extends JavaPlugin implements Listener {
             rewardSet = roll("kits." + kit + ".random-rewards");
         }
 
-        boolean owner = getConfig().getBoolean("kits." + kit + ".owner-set", false)
-                || getConfig().getBoolean("reward-sets." + rewardSet + ".owner-set", false);
-
-        if (owner) ownerSet(p);
-
-        List<String> rewards = new ArrayList<>();
-        rewards.addAll(getConfig().getStringList("kits." + kit + ".rewards"));
-        rewards.addAll(getConfig().getStringList("reward-sets." + rewardSet + ".rewards"));
-
-        for (String cmd : rewards) {
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd.replace("%player%", p.getName()));
-        }
+        givePresetKit(p, rewardSet);
 
         p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1f);
         p.sendMessage(msg("opened").replace("%kit%", rewardSet));
     }
+
+    private void givePresetKit(Player p, String kit) {
+        kit = normalize(kit);
+
+        if (kit.equals("klasyczny")) {
+            p.getInventory().addItem(new ItemStack(Material.BREAD, 32));
+            p.getInventory().addItem(new ItemStack(Material.COPPER_INGOT, 32));
+            p.getInventory().addItem(new ItemStack(Material.IRON_INGOT, 16));
+            p.getInventory().addItem(new ItemStack(Material.SHIELD, 1));
+            p.getInventory().addItem(named(Material.STONE_SWORD, "&f&lMiecz Klasyczny"));
+            p.getInventory().addItem(named(Material.STONE_PICKAXE, "&f&lKilof Klasyczny"));
+            p.getInventory().addItem(named(Material.STONE_AXE, "&f&lSiekiera Klasyczna"));
+            p.getInventory().addItem(named(Material.STONE_SHOVEL, "&f&lŁopata Klasyczna"));
+            p.getInventory().addItem(named(Material.STONE_HOE, "&f&lMotyka Klasyczna"));
+            return;
+        }
+
+        if (kit.equals("zelazny")) {
+            p.getInventory().addItem(enchant(Material.IRON_HELMET, "&7&lHełm Żelazny", new String[][]{{"protection","1"},{"unbreaking","1"}}));
+            p.getInventory().addItem(enchant(Material.IRON_CHESTPLATE, "&7&lNapierśnik Żelazny", new String[][]{{"protection","1"},{"unbreaking","1"}}));
+            p.getInventory().addItem(enchant(Material.IRON_LEGGINGS, "&7&lSpodnie Żelazne", new String[][]{{"protection","1"},{"unbreaking","1"}}));
+            p.getInventory().addItem(enchant(Material.IRON_BOOTS, "&7&lButy Żelazne", new String[][]{{"protection","1"},{"feather_falling","1"},{"unbreaking","1"}}));
+            p.getInventory().addItem(enchant(Material.IRON_SWORD, "&7&lMiecz Żelazny", new String[][]{{"sharpness","1"},{"unbreaking","1"}}));
+            p.getInventory().addItem(enchant(Material.IRON_PICKAXE, "&7&lKilof Żelazny", new String[][]{{"efficiency","2"},{"unbreaking","1"}}));
+            p.getInventory().addItem(enchant(Material.IRON_AXE, "&7&lSiekiera Żelazna", new String[][]{{"efficiency","2"},{"unbreaking","1"}}));
+            p.getInventory().addItem(enchant(Material.IRON_SHOVEL, "&7&lŁopata Żelazna", new String[][]{{"efficiency","2"},{"unbreaking","1"}}));
+            p.getInventory().addItem(enchant(Material.IRON_HOE, "&7&lMotyka Żelazna", new String[][]{{"efficiency","2"},{"unbreaking","1"}}));
+            p.getInventory().addItem(enchant(Material.BOW, "&7&lŁuk Żelazny", new String[][]{{"power","1"},{"unbreaking","1"}}));
+            p.getInventory().addItem(new ItemStack(Material.ARROW, 32));
+            p.getInventory().addItem(new ItemStack(Material.GOLDEN_APPLE, 2));
+            p.getInventory().addItem(new ItemStack(Material.DIAMOND, 6));
+            p.getInventory().addItem(new ItemStack(Material.SHIELD, 1));
+            return;
+        }
+
+        if (kit.equals("diamentowy")) {
+            p.getInventory().addItem(enchant(Material.DIAMOND_HELMET, "&b&lHełm Diamentowy", new String[][]{{"protection","2"},{"unbreaking","2"}}));
+            p.getInventory().addItem(enchant(Material.DIAMOND_CHESTPLATE, "&b&lNapierśnik Diamentowy", new String[][]{{"protection","2"},{"unbreaking","2"}}));
+            p.getInventory().addItem(enchant(Material.DIAMOND_LEGGINGS, "&b&lSpodnie Diamentowe", new String[][]{{"protection","2"},{"unbreaking","2"}}));
+            p.getInventory().addItem(enchant(Material.DIAMOND_BOOTS, "&b&lButy Diamentowe", new String[][]{{"protection","2"},{"feather_falling","2"},{"unbreaking","2"}}));
+            p.getInventory().addItem(enchant(Material.DIAMOND_SWORD, "&b&lMiecz Diamentowy", new String[][]{{"sharpness","2"},{"looting","1"},{"unbreaking","2"}}));
+            p.getInventory().addItem(enchant(Material.DIAMOND_PICKAXE, "&b&lKilof Diamentowy", new String[][]{{"efficiency","3"},{"fortune","2"},{"unbreaking","2"}}));
+            p.getInventory().addItem(enchant(Material.DIAMOND_AXE, "&b&lSiekiera Diamentowa", new String[][]{{"efficiency","3"},{"sharpness","2"},{"unbreaking","2"}}));
+            p.getInventory().addItem(enchant(Material.DIAMOND_SHOVEL, "&b&lŁopata Diamentowa", new String[][]{{"efficiency","3"},{"unbreaking","2"}}));
+            p.getInventory().addItem(enchant(Material.DIAMOND_HOE, "&b&lMotyka Diamentowa", new String[][]{{"efficiency","3"},{"unbreaking","2"}}));
+            p.getInventory().addItem(enchant(Material.BOW, "&b&lŁuk Diamentowy", new String[][]{{"power","3"},{"unbreaking","2"}}));
+            p.getInventory().addItem(enchant(Material.CROSSBOW, "&b&lKusza Diamentowa", new String[][]{{"quick_charge","1"},{"unbreaking","2"}}));
+            p.getInventory().addItem(new ItemStack(Material.ARROW, 64));
+            p.getInventory().addItem(new ItemStack(Material.GOLDEN_APPLE, 6));
+            p.getInventory().addItem(new ItemStack(Material.ENDER_PEARL, 8));
+            p.getInventory().addItem(new ItemStack(Material.SHIELD, 1));
+            return;
+        }
+
+        if (kit.equals("epic")) {
+            p.getInventory().addItem(enchant(Material.DIAMOND_HELMET, "&5&lHełm Epic", new String[][]{{"protection","3"},{"thorns","1"},{"unbreaking","3"},{"mending","1"}}));
+            p.getInventory().addItem(enchant(Material.DIAMOND_CHESTPLATE, "&5&lNapierśnik Epic", new String[][]{{"protection","3"},{"thorns","1"},{"unbreaking","3"},{"mending","1"}}));
+            p.getInventory().addItem(enchant(Material.DIAMOND_LEGGINGS, "&5&lSpodnie Epic", new String[][]{{"protection","3"},{"thorns","1"},{"unbreaking","3"},{"mending","1"}}));
+            p.getInventory().addItem(enchant(Material.DIAMOND_BOOTS, "&5&lButy Epic", new String[][]{{"protection","3"},{"feather_falling","3"},{"depth_strider","2"},{"unbreaking","3"},{"mending","1"}}));
+            p.getInventory().addItem(enchant(Material.DIAMOND_SWORD, "&5&lMiecz Epic", new String[][]{{"sharpness","4"},{"looting","2"},{"fire_aspect","1"},{"unbreaking","3"},{"mending","1"}}));
+            p.getInventory().addItem(enchant(Material.DIAMOND_PICKAXE, "&5&lKilof Epic", new String[][]{{"efficiency","4"},{"fortune","3"},{"unbreaking","3"},{"mending","1"}}));
+            p.getInventory().addItem(enchant(Material.DIAMOND_AXE, "&5&lSiekiera Epic", new String[][]{{"efficiency","4"},{"sharpness","4"},{"unbreaking","3"},{"mending","1"}}));
+            p.getInventory().addItem(enchant(Material.DIAMOND_SHOVEL, "&5&lŁopata Epic", new String[][]{{"efficiency","4"},{"silk_touch","1"},{"unbreaking","3"},{"mending","1"}}));
+            p.getInventory().addItem(enchant(Material.DIAMOND_HOE, "&5&lMotyka Epic", new String[][]{{"efficiency","4"},{"unbreaking","3"},{"mending","1"}}));
+            p.getInventory().addItem(enchant(Material.BOW, "&5&lŁuk Epic", new String[][]{{"power","4"},{"punch","1"},{"flame","1"},{"unbreaking","3"}}));
+            p.getInventory().addItem(enchant(Material.CROSSBOW, "&5&lKusza Epic", new String[][]{{"quick_charge","2"},{"piercing","3"},{"unbreaking","3"},{"mending","1"}}));
+            p.getInventory().addItem(new ItemStack(Material.ARROW, 64));
+            p.getInventory().addItem(new ItemStack(Material.GOLDEN_APPLE, 12));
+            p.getInventory().addItem(new ItemStack(Material.ENDER_PEARL, 16));
+            p.getInventory().addItem(new ItemStack(Material.TOTEM_OF_UNDYING, 1));
+            p.getInventory().addItem(new ItemStack(Material.SHIELD, 1));
+            return;
+        }
+
+        if (kit.equals("legendarny")) {
+            p.getInventory().addItem(enchant(Material.NETHERITE_HELMET, "&6&lHełm Legendarny", new String[][]{{"protection","4"},{"respiration","2"},{"thorns","2"},{"unbreaking","3"},{"mending","1"}}));
+            p.getInventory().addItem(enchant(Material.NETHERITE_CHESTPLATE, "&6&lNapierśnik Legendarny", new String[][]{{"protection","4"},{"thorns","2"},{"unbreaking","3"},{"mending","1"}}));
+            p.getInventory().addItem(enchant(Material.NETHERITE_LEGGINGS, "&6&lSpodnie Legendarne", new String[][]{{"protection","4"},{"thorns","2"},{"unbreaking","3"},{"mending","1"}}));
+            p.getInventory().addItem(enchant(Material.NETHERITE_BOOTS, "&6&lButy Legendarne", new String[][]{{"protection","4"},{"feather_falling","4"},{"depth_strider","3"},{"unbreaking","3"},{"mending","1"}}));
+            p.getInventory().addItem(enchant(Material.NETHERITE_SWORD, "&6&lMiecz Legendarny", new String[][]{{"sharpness","5"},{"looting","3"},{"fire_aspect","2"},{"sweeping_edge","3"},{"unbreaking","3"},{"mending","1"}}));
+            p.getInventory().addItem(enchant(Material.NETHERITE_PICKAXE, "&6&lKilof Legendarny", new String[][]{{"efficiency","5"},{"fortune","3"},{"unbreaking","3"},{"mending","1"}}));
+            p.getInventory().addItem(enchant(Material.NETHERITE_AXE, "&6&lSiekiera Legendarna", new String[][]{{"efficiency","5"},{"sharpness","5"},{"unbreaking","3"},{"mending","1"}}));
+            p.getInventory().addItem(enchant(Material.NETHERITE_SHOVEL, "&6&lŁopata Legendarna", new String[][]{{"efficiency","5"},{"silk_touch","1"},{"unbreaking","3"},{"mending","1"}}));
+            p.getInventory().addItem(enchant(Material.NETHERITE_HOE, "&6&lMotyka Legendarna", new String[][]{{"efficiency","5"},{"unbreaking","3"},{"mending","1"}}));
+            p.getInventory().addItem(enchant(Material.BOW, "&6&lŁuk Legendarny", new String[][]{{"power","5"},{"punch","2"},{"flame","1"},{"infinity","1"},{"unbreaking","3"}}));
+            p.getInventory().addItem(enchant(Material.CROSSBOW, "&6&lKusza Legendarna", new String[][]{{"quick_charge","3"},{"piercing","4"},{"unbreaking","3"},{"mending","1"}}));
+            p.getInventory().addItem(enchant(Material.TRIDENT, "&6&lTrójząb Legendarny", new String[][]{{"impaling","4"},{"loyalty","3"},{"unbreaking","3"},{"mending","1"}}));
+            p.getInventory().addItem(new ItemStack(Material.ARROW, 64));
+            p.getInventory().addItem(new ItemStack(Material.GOLDEN_APPLE, 16));
+            p.getInventory().addItem(new ItemStack(Material.TOTEM_OF_UNDYING, 2));
+            p.getInventory().addItem(new ItemStack(Material.FIREWORK_ROCKET, 64));
+            p.getInventory().addItem(enchant(Material.ELYTRA, "&6&lElytry Legendarne", new String[][]{{"unbreaking","3"},{"mending","1"}}));
+            p.getInventory().addItem(enchant(Material.SHIELD, "&6&lTarcza Legendarna", new String[][]{{"unbreaking","3"},{"mending","1"}}));
+            return;
+        }
+
+        if (kit.equals("mityczny")) {
+            p.getInventory().addItem(enchant(Material.NETHERITE_HELMET, "&d&lHełm Mityczny", new String[][]{{"protection","4"},{"respiration","3"},{"aqua_affinity","1"},{"thorns","3"},{"unbreaking","3"},{"mending","1"}}));
+            p.getInventory().addItem(enchant(Material.NETHERITE_CHESTPLATE, "&d&lNapierśnik Mityczny", new String[][]{{"protection","4"},{"thorns","3"},{"unbreaking","3"},{"mending","1"}}));
+            p.getInventory().addItem(enchant(Material.NETHERITE_LEGGINGS, "&d&lSpodnie Mityczne", new String[][]{{"protection","4"},{"thorns","3"},{"unbreaking","3"},{"mending","1"}}));
+            p.getInventory().addItem(enchant(Material.NETHERITE_BOOTS, "&d&lButy Mityczne", new String[][]{{"protection","4"},{"feather_falling","4"},{"depth_strider","3"},{"soul_speed","2"},{"thorns","3"},{"unbreaking","3"},{"mending","1"}}));
+            p.getInventory().addItem(enchant(Material.NETHERITE_SWORD, "&d&lMiecz Mityczny", new String[][]{{"sharpness","5"},{"looting","3"},{"fire_aspect","2"},{"sweeping_edge","3"},{"knockback","1"},{"unbreaking","3"},{"mending","1"}}));
+            p.getInventory().addItem(enchant(Material.NETHERITE_PICKAXE, "&d&lKilof Mityczny", new String[][]{{"efficiency","5"},{"fortune","3"},{"unbreaking","3"},{"mending","1"}}));
+            p.getInventory().addItem(enchant(Material.NETHERITE_AXE, "&d&lSiekiera Mityczna", new String[][]{{"efficiency","5"},{"sharpness","5"},{"unbreaking","3"},{"mending","1"}}));
+            p.getInventory().addItem(enchant(Material.NETHERITE_SHOVEL, "&d&lŁopata Mityczna", new String[][]{{"efficiency","5"},{"silk_touch","1"},{"unbreaking","3"},{"mending","1"}}));
+            p.getInventory().addItem(enchant(Material.NETHERITE_HOE, "&d&lMotyka Mityczna", new String[][]{{"efficiency","5"},{"silk_touch","1"},{"unbreaking","3"},{"mending","1"}}));
+            p.getInventory().addItem(enchant(Material.BOW, "&d&lŁuk Mityczny", new String[][]{{"power","5"},{"punch","2"},{"flame","1"},{"infinity","1"},{"unbreaking","3"},{"mending","1"}}));
+            p.getInventory().addItem(enchant(Material.CROSSBOW, "&d&lKusza Mityczna", new String[][]{{"quick_charge","3"},{"multishot","1"},{"piercing","4"},{"unbreaking","3"},{"mending","1"}}));
+            p.getInventory().addItem(enchant(Material.TRIDENT, "&d&lTrójząb Mityczny", new String[][]{{"impaling","5"},{"loyalty","3"},{"channeling","1"},{"unbreaking","3"},{"mending","1"}}));
+            p.getInventory().addItem(new ItemStack(Material.ARROW, 64));
+            p.getInventory().addItem(new ItemStack(Material.GOLDEN_APPLE, 24));
+            p.getInventory().addItem(new ItemStack(Material.ENCHANTED_GOLDEN_APPLE, 2));
+            p.getInventory().addItem(new ItemStack(Material.TOTEM_OF_UNDYING, 4));
+            p.getInventory().addItem(new ItemStack(Material.FIREWORK_ROCKET, 64));
+            p.getInventory().addItem(enchant(Material.ELYTRA, "&d&lElytry Mityczne", new String[][]{{"unbreaking","3"},{"mending","1"}}));
+            p.getInventory().addItem(enchant(Material.SHIELD, "&d&lTarcza Mityczna", new String[][]{{"unbreaking","3"},{"mending","1"}}));
+            return;
+        }
+
+        if (kit.equals("boski")) {
+            ownerSet(p);
+        }
+    }
+
 
     private boolean takeAnyKey(Player p, String key) {
         key = normalize(key);
@@ -440,8 +554,24 @@ public final class MSurvivalKeys extends JavaPlugin implements Listener {
         p.getInventory().addItem(enchant(Material.NETHERITE_CHESTPLATE, "&b&lNapierśnik MILEKZ", new String[][]{{"protection","4"},{"thorns","3"},{"unbreaking","3"},{"mending","1"}}));
         p.getInventory().addItem(enchant(Material.NETHERITE_LEGGINGS, "&b&lSpodnie MILEKZ", new String[][]{{"protection","4"},{"thorns","3"},{"unbreaking","3"},{"mending","1"}}));
         p.getInventory().addItem(enchant(Material.NETHERITE_BOOTS, "&b&lButy MILEKZ", new String[][]{{"protection","4"},{"feather_falling","4"},{"depth_strider","3"},{"soul_speed","3"},{"thorns","3"},{"unbreaking","3"},{"mending","1"}}));
-        p.getInventory().addItem(enchant(Material.NETHERITE_SWORD, "&c&lMieczyk", new String[][]{{"sharpness","5"},{"looting","3"},{"fire_aspect","2"},{"sweeping_edge","3"},{"knockback","2"},{"unbreaking","3"},{"mending","1"}}));
+
+        p.getInventory().addItem(enchant(Material.NETHERITE_SWORD, "&c&lMieczyk MILEKZ", new String[][]{{"sharpness","5"},{"looting","3"},{"fire_aspect","2"},{"sweeping_edge","3"},{"knockback","2"},{"unbreaking","3"},{"mending","1"}}));
+        p.getInventory().addItem(enchant(Material.NETHERITE_AXE, "&c&lSiekiera MILEKZ", new String[][]{{"efficiency","5"},{"sharpness","5"},{"unbreaking","3"},{"mending","1"}}));
+        p.getInventory().addItem(enchant(Material.NETHERITE_PICKAXE, "&b&lKilof MILEKZ", new String[][]{{"efficiency","5"},{"fortune","3"},{"unbreaking","3"},{"mending","1"}}));
+        p.getInventory().addItem(enchant(Material.NETHERITE_SHOVEL, "&b&lŁopata MILEKZ", new String[][]{{"efficiency","5"},{"silk_touch","1"},{"unbreaking","3"},{"mending","1"}}));
+        p.getInventory().addItem(enchant(Material.NETHERITE_HOE, "&d&lMotyka MILEKZ", new String[][]{{"efficiency","5"},{"silk_touch","1"},{"unbreaking","3"},{"mending","1"}}));
+
         p.getInventory().addItem(enchant(Material.BOW, "&e&lŁuk Boga", new String[][]{{"power","5"},{"punch","2"},{"flame","1"},{"infinity","1"},{"unbreaking","3"},{"mending","1"}}));
+        p.getInventory().addItem(enchant(Material.CROSSBOW, "&6&lKusza MILEKZ", new String[][]{{"quick_charge","3"},{"multishot","1"},{"piercing","4"},{"unbreaking","3"},{"mending","1"}}));
+        p.getInventory().addItem(enchant(Material.TRIDENT, "&3&lTrójząb MILEKZ", new String[][]{{"impaling","5"},{"loyalty","3"},{"channeling","1"},{"unbreaking","3"},{"mending","1"}}));
+
+        Material mace = parseMaterial("MACE");
+        if (mace != Material.STONE) {
+            p.getInventory().addItem(enchant(mace, "&4&lBuzdygan MILEKZ", new String[][]{{"density","5"},{"breach","3"},{"smite","5"},{"fire_aspect","2"},{"unbreaking","3"},{"mending","1"}}));
+        }
+
+        p.getInventory().addItem(enchant(Material.ELYTRA, "&f&lElytry MILEKZ", new String[][]{{"unbreaking","3"},{"mending","1"}}));
+        p.getInventory().addItem(enchant(Material.SHIELD, "&6&lTarcza MILEKZ", new String[][]{{"unbreaking","3"},{"mending","1"}}));
     }
 
     private ItemStack enchant(Material material, String name, String[][] enchants) {

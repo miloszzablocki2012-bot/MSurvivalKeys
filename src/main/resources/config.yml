@@ -21,26 +21,31 @@ gui:
   filler: BLACK_STAINED_GLASS_PANE
 
 key-item:
-  material: LIGHTNING_ROD
-  name: "&6&l%key_name%"
+  material: TRIPWIRE_HOOK
+  name: "&6&l✦ %key_name% &6&l✦"
   lore:
-    - "&8MSurvival Key"
-    - "&7Typ: &f%key_name%"
+    - "&8━━━━━━━━━━━━━━━━"
+    - "&7Typ klucza: &f%key_name%"
+    - "&7Przedmiot: &eZaczep na linkę"
     - ""
-    - "&eKliknij PPM, aby użyć jako kit."
-
+    - "&7To jest przepustka do kitu."
+    - "&eOtwórz &b/kits&e i wybierz kit."
+    - ""
+    - "&6MSurvival.pl"
+    - "&8━━━━━━━━━━━━━━━━"
 messages:
   prefix: "&6&lMSurvivalKeys &8» &r"
   no-permission: "&cNie masz uprawnień."
   reload: "&aPrzeładowano config."
   cooldown: "&cKlucz tygodniowy za: &e%time%"
-  claimed: "&aOdebrano: &e%key%"
+  claimed: "&8[&6MSurvival&8] &aOdebrałeś cotygodniowy klucz: &e%key%&a!"
   no-key: "&cNie masz wymaganego klucza: &e%key%"
   blocked: "&cKity otwieraj na survivalu, nie w lobby."
+  key-right-click-disabled: "&cKlucza nie otwierasz PPM. Wpisz &e/kits &ci wybierz kit."
   opened: "&aOtworzono kit: &e%kit%"
-  withdrawn: "&aWyjęto klucz do ekwipunku: &e%key%"
-  admin-give: "&aDodano klucz &e%key% &adla &e%player%&a."
-  admin-item: "&aDano fizyczny klucz &e%key% &adla &e%player%&a."
+  withdrawn: "&8[&6MSurvival&8] &aWyjęto do ekwipunku: &e%key%&a."
+  admin-give: "&8[&6MSurvival&8] &aDodano &e%amount%x %key% &adla gracza &e%player%&a."
+  admin-item: "&8[&6MSurvival&8] &aPrzyznano fizyczny klucz &e%amount%x %key% &agraczowi &e%player%&a."
 
 keys:
   klasyczny:
@@ -65,7 +70,7 @@ weekly-random:
 kits:
   klasyczny:
     slot: 10
-    material: STONE_SWORD
+    material: TRIPWIRE_HOOK
     name: "&f&lKit Klasyczny"
     required-key: klasyczny
     rewards:
@@ -77,7 +82,7 @@ kits:
 
   zelazny:
     slot: 11
-    material: IRON_CHESTPLATE
+    material: TRIPWIRE_HOOK
     name: "&7&lKit Żelazny"
     required-key: zelazny
     rewards:
@@ -93,7 +98,7 @@ kits:
 
   diamentowy:
     slot: 12
-    material: DIAMOND_CHESTPLATE
+    material: TRIPWIRE_HOOK
     name: "&b&lKit Diamentowy"
     required-key: diamentowy
     rewards:
@@ -109,7 +114,7 @@ kits:
 
   epic:
     slot: 13
-    material: ENCHANTED_GOLDEN_APPLE
+    material: TRIPWIRE_HOOK
     name: "&5&lKit Epic"
     required-key: epic
     rewards:
@@ -124,7 +129,7 @@ kits:
 
   legendarny:
     slot: 14
-    material: NETHERITE_CHESTPLATE
+    material: TRIPWIRE_HOOK
     name: "&6&lKit Legendarny"
     required-key: legendarny
     random-rewards:
@@ -134,7 +139,7 @@ kits:
 
   mityczny:
     slot: 15
-    material: NETHER_STAR
+    material: TRIPWIRE_HOOK
     name: "&d&lKit Mityczny"
     required-key: mityczny
     random-rewards:
@@ -143,7 +148,7 @@ kits:
 
   boski:
     slot: 16
-    material: DRAGON_EGG
+    material: TRIPWIRE_HOOK
     name: "&4&lKit Boski"
     required-key: boski
     owner-set: true
@@ -153,6 +158,8 @@ kits:
       - "give %player% firework_rocket 64"
       - "give %player% netherite_ingot 16"
       - "give %player% totem_of_undying 5"
+      - "give %player% arrow 64"
+      - "give %player% shield 1"
 
 reward-sets:
   legendarny:
