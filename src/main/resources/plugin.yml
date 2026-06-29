@@ -3,11 +3,19 @@ version: 3.1
 main: pl.msurvival.keys.MSurvivalKeys
 api-version: '1.21'
 author: Milekz
+
 commands:
-  keysmenu: {usage: /keysmenu}
-  kits: {usage: /kits}
-  kit: {usage: /kit <nazwa>}
-  key: {usage: /key use <typ>}
-  keyadmin: {usage: /keyadmin <give|item|reset|reload> <gracz> [typ] [ilosc]}
+  keysmenu:
+    usage: /keysmenu
+  kits:
+    usage: /kits
+  kit:
+    usage: /kit <nazwa>
+  key:
+    usage: /key use <typ>
+  keyadmin:
+    usage: /keyadmin <give|item|reset|reload> <gracz> [typ] [ilosc]
+
 permissions:
-  msurvivalkeys.admin: {default: op}
+  msurvivalkeys.admin:
+    default: op
