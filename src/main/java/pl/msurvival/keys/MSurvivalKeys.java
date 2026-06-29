@@ -495,7 +495,7 @@ public final class MSurvivalKeys extends JavaPlugin implements Listener {
     }
 
     private void claimWeekly(Player player) {
-        String key = getConfig().getString("settings.default-key", "klasyczny");
+        String key = chooseWeeklyKey();
         String p = path(player.getName());
         long cooldown = getConfig().getLong("settings.cooldown-seconds", 604800L) * 1000L;
         long now = System.currentTimeMillis();
@@ -507,52 +507,51 @@ public final class MSurvivalKeys extends JavaPlugin implements Listener {
         }
 
         data.set(p + ".lastClaim", now);
-        addKeys(player.getName(), key, 1);
-        player.getInventory().addItem(createKeyItem(key, 1));
+        saveData();
 
+        player.getInventory().addItem(createKeyItem(key, 1));
         player.sendMessage(msg("claimed")
                 .replace("%key_name%", color(getKeyDisplay(key)))
-                .replace("%amount%", String.valueOf(getKeys(player.getName(), key))));
+                .replace("%amount%", String.valueOf(getTotalKeys(player, key))));
     }
 
-    private void startKeyAnimation(Player player, String key) {
-        if (!keyExists(key)) {
-            player.sendMessage(msg("unknown-key"));
-            return;
+    private String chooseWeeklyKey() {
+        if (!getConfig().getBoolean("weekly-random.enabled", true)) {
+            return getConfig().getString("settings.default-key", "klasyczny");
         }
 
-        if (getKeys(player.getName(), key) <= 0) {
-            player.sendMessage(msg("no-keys"));
-            return;
+        org.bukkit.configuration.ConfigurationSection section = getConfig().getConfigurationSection("weekly-random.keys");
+
+        if (section == null || section.getKeys(false).isEmpty()) {
+            return getConfig().getString("settings.default-key", "klasyczny");
         }
 
-        String display = color(getKeyDisplay(key));
+        int total = 0;
+        for (String key : section.getKeys(false)) {
+            total += Math.max(0, section.getInt(key, 0));
+        }
 
-        player.sendTitle(color("&6&lOTWIERANIE KLUCZA"), display, 5, 15, 5);
-        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 1.0f);
+        if (total <= 0) {
+            return getConfig().getString("settings.default-key", "klasyczny");
+        }
 
-        Bukkit.getScheduler().runTaskLater(this, () -> {
-            if (player.isOnline()) {
-                player.sendTitle(color("&e&lLOSOWANIE..."), display, 5, 15, 5);
-                player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 1.3f);
-            }
-        }, 15L);
+        int roll = new java.util.Random().nextInt(total) + 1;
+        int current = 0;
 
-        Bukkit.getScheduler().runTaskLater(this, () -> {
-            if (player.isOnline()) {
-                player.sendTitle(color("&a&lPRAWIE GOTOWE..."), display, 5, 15, 5);
-                player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 1.6f);
-            }
-        }, 30L);
+        for (String key : section.getKeys(false)) {
+            current += Math.max(0, section.getInt(key, 0));
+            if (roll <= current) return normalize(key);
+        }
 
-        Bukkit.getScheduler().runTaskLater(this, () -> {
-            if (player.isOnline()) {
-                useKey(player, key);
-            }
-        }, 45L);
+        return getConfig().getString("settings.default-key", "klasyczny");
     }
 
     private void useKey(Player player, String key) {
+        if (isBlockedWorld(player)) {
+            player.sendMessage(msg("cannot-use-in-lobby"));
+            return;
+        }
+
         if (!keyExists(key)) {
             player.sendMessage(msg("unknown-key"));
             return;
@@ -690,6 +689,15 @@ public final class MSurvivalKeys extends JavaPlugin implements Listener {
         } else {
             item.setAmount(item.getAmount() - 1);
         }
+    }
+
+    private boolean isBlockedWorld(Player player) {
+        for (String world : getConfig().getStringList("blocked-worlds")) {
+            if (player.getWorld().getName().equalsIgnoreCase(world)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean takeOneKey(Player player, String key) {
