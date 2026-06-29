@@ -57,7 +57,7 @@ public final class MSurvivalKeys extends JavaPlugin implements Listener {
     }
 
     private void registerCommands() {
-        getCommand("menu").setExecutor((sender, command, label, args) -> {
+        getCommand("keysmenu").setExecutor((sender, command, label, args) -> {
             if (sender instanceof Player player) {
                 openMainMenu(player);
             }
@@ -68,13 +68,6 @@ public final class MSurvivalKeys extends JavaPlugin implements Listener {
             if (sender instanceof Player player) {
                 player.getInventory().addItem(createMenuCompass());
                 player.sendMessage(msg("menuitem-given"));
-            }
-            return true;
-        });
-
-        getCommand("weeklykey").setExecutor((sender, command, label, args) -> {
-            if (sender instanceof Player player) {
-                claimWeekly(player);
             }
             return true;
         });
