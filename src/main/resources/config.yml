@@ -2,6 +2,16 @@ settings:
   cooldown-seconds: 604800
   default-key: klasyczny
 
+weekly-random:
+  enabled: true
+  keys:
+    klasyczny: 85
+    zelazny: 15
+
+blocked-worlds:
+  - Lobby
+
+
 menu-item:
   enabled: true
   give-on-join: true
@@ -23,7 +33,10 @@ weekly-menu:
   lore:
     - "&8Darmowa nagroda"
     - ""
-    - "&7Klucz: %key_name%"
+    - "&7Możesz dostać:"
+    - "&f• &fKlucz Klasyczny &8(85%)"
+    - "&f• &7Klucz Żelazny &8(15%)"
+    - ""
     - "&7Status: %status%"
     - ""
     - "&eKliknij, aby odebrać."
@@ -75,7 +88,7 @@ gui:
 effects:
   enabled: true
   sound: ENTITY_PLAYER_LEVELUP
-  title: "&6&lKLUCZ OTWARTY"
+  title: "&6&lOTWIERANIE KLUCZA"
   subtitle: "&7Użyto: &e%key_name%"
   fireworks: true
   animation: true
@@ -83,7 +96,7 @@ effects:
 messages:
   prefix: "&6&lMSurvivalKeys &8» &r"
   no-permission: "&cNie masz uprawnień."
-  claimed: "&aOdebrałeś cotygodniowy klucz: &e%key_name%&a. Masz: &e%amount%&a."
+  claimed: "&aOdebrałeś cotygodniowy klucz: &e%key_name%&a. Klucz trafił do ekwipunku."
   cooldown: "&cCotygodniowy klucz możesz odebrać za: &e%time%&c."
   no-keys: "&cNie masz tego klucza. Odbierz go w &e/keysmenu &club kup w sklepie."
   used: "&aUżyto klucza: &e%key_name%&a!"
@@ -95,6 +108,7 @@ messages:
   usage-key: "&cUżycie: &e/key use <typ>"
   usage-admin: "&cUżycie: &e/keyadmin <give|reset|reload|item> <gracz> [typ] [ilość]"
   unknown-key: "&cNie ma takiego klucza."
+  cannot-use-in-lobby: "&cKluczy nie otwieraj w lobby. Wejdź na &e/survival&c i użyj klucza tam."
 
 keys:
   klasyczny:
