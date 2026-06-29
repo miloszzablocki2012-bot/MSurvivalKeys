@@ -11,10 +11,9 @@ weekly-random:
 blocked-worlds:
   - Lobby
 
-
 menu-item:
   enabled: true
-  give-on-join: true
+  give-on-join: false
   material: COMPASS
   slot: 4
   name: "&6&lMSurvival Menu"
@@ -53,37 +52,8 @@ key-item:
     - "&6Kliknij PPM, aby użyć."
 
 gui:
-  main-title: "&6&lKLUCZE SERWERA"
   keys-title: "&6&lKLUCZE SERWERA"
-  size: 27
   filler: BLACK_STAINED_GLASS_PANE
-
-  items:
-    lobby:
-      slot: 11
-      material: NETHER_STAR
-      name: "&e&lLobby"
-      lore:
-        - "&7Powrót do lobby serwera."
-        - "&8Do ustawienia po dodaniu lobby."
-      command: "spawn %player%"
-
-    survival:
-      slot: 13
-      material: GRASS_BLOCK
-      name: "&a&lSurvival"
-      lore:
-        - "&7Główny tryb serwera."
-        - "&7Buduj, kop, walcz i rozwijaj się."
-      command: "spawn %player%"
-
-    keys:
-      slot: 15
-      material: LIGHTNING_ROD
-      name: "&6&lKlucze"
-      lore:
-        - "&7Odbieraj i używaj kluczy."
-        - "&eKliknij, aby otworzyć menu kluczy."
 
 effects:
   enabled: true
@@ -98,7 +68,7 @@ messages:
   no-permission: "&cNie masz uprawnień."
   claimed: "&aOdebrałeś cotygodniowy klucz: &e%key_name%&a. Klucz trafił do ekwipunku."
   cooldown: "&cCotygodniowy klucz możesz odebrać za: &e%time%&c."
-  no-keys: "&cNie masz tego klucza. Odbierz go w &e/keysmenu &club kup w sklepie."
+  no-keys: "&cNie masz tego klucza."
   used: "&aUżyto klucza: &e%key_name%&a!"
   menuitem-given: "&aOtrzymałeś item menu."
   key-given-item: "&aOtrzymałeś fizyczny klucz: &e%key_name%&a."
@@ -106,7 +76,7 @@ messages:
   admin-reset: "&aZresetowano cooldown gracza &e%player%&a."
   reload: "&aPrzeładowano config."
   usage-key: "&cUżycie: &e/key use <typ>"
-  usage-admin: "&cUżycie: &e/keyadmin <give|reset|reload|item> <gracz> [typ] [ilość]"
+  usage-admin: "&cUżycie: &e/keyadmin <give|item|reset|reload> <gracz> [typ] [ilość]"
   unknown-key: "&cNie ma takiego klucza."
   cannot-use-in-lobby: "&cKluczy nie otwieraj w lobby. Wejdź na &e/survival&c i użyj klucza tam."
 
@@ -174,9 +144,6 @@ keys:
       - "give %player% arrow 64"
       - "give %player% golden_apple 10"
       - "give %player% ender_pearl 16"
-      - "give %player% diamond_hoe 1"
-      - "give %player% bow 1"
-      - "give %player% arrow 64"
 
   legendarny:
     display: "&6&lKlucz Legendarny"

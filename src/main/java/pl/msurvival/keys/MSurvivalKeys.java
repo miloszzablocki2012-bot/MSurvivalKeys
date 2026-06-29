@@ -1,12 +1,13 @@
 package pl.msurvival.keys;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Color;
 import org.bukkit.FireworkEffect;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Sound;
+import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -15,10 +16,9 @@ import org.bukkit.entity.Firework;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -32,41 +32,40 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Random;
 
+@SuppressWarnings("deprecation")
 public final class MSurvivalKeys extends JavaPlugin implements Listener {
 
     private File dataFile;
     private FileConfiguration data;
-    private NamespacedKey itemTypeKey;
-    private NamespacedKey menuItemKey;
-    private NamespacedKey menuActionKey;
+    private NamespacedKey keyTypeKey;
+    private NamespacedKey guiActionKey;
+    private final Random random = new Random();
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
         loadData();
 
-        itemTypeKey = new NamespacedKey(this, "key_type");
-        menuItemKey = new NamespacedKey(this, "menu_item");
-        menuActionKey = new NamespacedKey(this, "menu_action");
+        keyTypeKey = new NamespacedKey(this, "key_type");
+        guiActionKey = new NamespacedKey(this, "gui_action");
 
         Bukkit.getPluginManager().registerEvents(this, this);
         registerCommands();
-
-        getLogger().info("MSurvivalKeys v3 wlaczony!");
     }
 
     private void registerCommands() {
         getCommand("keysmenu").setExecutor((sender, command, label, args) -> {
             if (sender instanceof Player player) {
-                openMainMenu(player);
+                openKeysMenu(player);
             }
             return true;
         });
 
         getCommand("menuitem").setExecutor((sender, command, label, args) -> {
             if (sender instanceof Player player) {
-                player.getInventory().addItem(createMenuCompass());
+                player.getInventory().addItem(createMenuItem());
                 player.sendMessage(msg("menuitem-given"));
             }
             return true;
@@ -104,63 +103,37 @@ public final class MSurvivalKeys extends JavaPlugin implements Listener {
             }
 
             String action = args[0].toLowerCase(Locale.ROOT);
-            String name = args[1];
+            String targetName = args[1];
 
             if (action.equals("reset")) {
-                data.set(path(name) + ".lastClaim", 0L);
+                data.set(path(targetName) + ".lastClaim", 0L);
                 saveData();
-                sender.sendMessage(msg("admin-reset").replace("%player%", name));
+                sender.sendMessage(msg("admin-reset").replace("%player%", targetName));
+                return true;
+            }
+
+            String key = args.length >= 3 ? normalize(args[2]) : getConfig().getString("settings.default-key", "klasyczny");
+            int amount = parseAmount(args.length >= 4 ? args[3] : "1");
+
+            if (!keyExists(key)) {
+                sender.sendMessage(msg("unknown-key"));
                 return true;
             }
 
             if (action.equals("give")) {
-                String key = args.length >= 3 ? normalize(args[2]) : getConfig().getString("settings.default-key", "klasyczny");
-                int amount = 1;
-
-                if (args.length >= 4) {
-                    try {
-                        amount = Math.max(1, Integer.parseInt(args[3]));
-                    } catch (NumberFormatException ignored) {
-                    }
-                }
-
-                if (!keyExists(key)) {
-                    sender.sendMessage(msg("unknown-key"));
-                    return true;
-                }
-
-                addKeys(name, key, amount);
+                addKeys(targetName, key, amount);
                 sender.sendMessage(msg("admin-give")
-                        .replace("%player%", name)
+                        .replace("%player%", targetName)
                         .replace("%amount%", String.valueOf(amount))
                         .replace("%key_name%", color(getKeyDisplay(key))));
                 return true;
             }
 
             if (action.equals("item")) {
-                if (args.length < 3) {
-                    sender.sendMessage(msg("usage-admin"));
-                    return true;
-                }
-
-                Player target = Bukkit.getPlayerExact(name);
-                String key = normalize(args[2]);
-                int amount = 1;
-
-                if (args.length >= 4) {
-                    try {
-                        amount = Math.max(1, Integer.parseInt(args[3]));
-                    } catch (NumberFormatException ignored) {
-                    }
-                }
+                Player target = Bukkit.getPlayerExact(targetName);
 
                 if (target == null) {
                     sender.sendMessage(color("&cGracz musi być online."));
-                    return true;
-                }
-
-                if (!keyExists(key)) {
-                    sender.sendMessage(msg("unknown-key"));
                     return true;
                 }
 
@@ -175,49 +148,6 @@ public final class MSurvivalKeys extends JavaPlugin implements Listener {
     }
 
     @EventHandler
-    public void onJoinGiveMenuItem(PlayerJoinEvent event) {
-        if (!getConfig().getBoolean("menu-item.give-on-join", true)) {
-            return;
-        }
-
-        Player player = event.getPlayer();
-
-        Bukkit.getScheduler().runTaskLater(this, () -> {
-            if (!player.isOnline()) {
-                return;
-            }
-
-            if (hasMenuItem(player)) {
-                return;
-            }
-
-            int slot = getConfig().getInt("menu-item.slot", 4);
-            ItemStack item = createMenuCompass();
-
-            if (slot >= 0 && slot <= 35) {
-                ItemStack current = player.getInventory().getItem(slot);
-
-                if (current == null || current.getType() == Material.AIR || isMenuCompass(current)) {
-                    player.getInventory().setItem(slot, item);
-                    return;
-                }
-            }
-
-            player.getInventory().addItem(item);
-        }, 20L);
-    }
-
-    private boolean hasMenuItem(Player player) {
-        for (ItemStack item : player.getInventory().getContents()) {
-            if (isMenuCompass(item)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    @EventHandler
     public void onItemClick(PlayerInteractEvent event) {
         Action action = event.getAction();
 
@@ -225,20 +155,14 @@ public final class MSurvivalKeys extends JavaPlugin implements Listener {
             return;
         }
 
-        ItemStack item = event.getItem();
+        String key = getKeyFromItem(event.getItem());
 
-        if (isMenuCompass(item)) {
-            event.setCancelled(true);
-            openMainMenu(event.getPlayer());
+        if (key == null) {
             return;
         }
 
-        String key = getKeyFromItem(item);
-
-        if (key != null) {
-            event.setCancelled(true);
-            startKeyAnimation(event.getPlayer(), key);
-        }
+        event.setCancelled(true);
+        startKeyAnimation(event.getPlayer(), key);
     }
 
     @EventHandler
@@ -247,88 +171,63 @@ public final class MSurvivalKeys extends JavaPlugin implements Listener {
             return;
         }
 
-        if (event.getCurrentItem() == null) {
-            return;
-        }
-
-        String title = event.getView().getTitle();
-
-        if (!title.equals(color(getConfig().getString("gui.main-title", "&6&lMSURVIVAL MENU")))
-                && !title.equals(color(getConfig().getString("gui.keys-title", "&6&lKLUCZE SERWERA")))) {
+        if (!event.getView().getTitle().equals(color(getConfig().getString("gui.keys-title", "&6&lKLUCZE SERWERA")))) {
             return;
         }
 
         event.setCancelled(true);
 
-        ItemMeta meta = event.getCurrentItem().getItemMeta();
+        ItemStack item = event.getCurrentItem();
+
+        if (item == null || !item.hasItemMeta()) {
+            return;
+        }
+
+        ItemMeta meta = item.getItemMeta();
 
         if (meta == null) {
             return;
         }
 
-        String action = meta.getPersistentDataContainer().get(menuActionKey, PersistentDataType.STRING);
+        String action = meta.getPersistentDataContainer().get(guiActionKey, PersistentDataType.STRING);
 
         if (action == null) {
             return;
         }
 
-        if (action.equals("keys")) {
-            openKeysMenu(player);
-            return;
-        }
-
-        if (action.startsWith("command:")) {
-            player.closeInventory();
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), action.substring(8).replace("%player%", player.getName()));
-            return;
-        }
+        player.closeInventory();
 
         if (action.equals("weekly")) {
-            player.closeInventory();
             claimWeekly(player);
             return;
         }
 
         if (action.startsWith("usekey:")) {
-            player.closeInventory();
-            startKeyAnimation(player, action.substring(7));
+            startKeyAnimation(player, action.substring("usekey:".length()));
         }
-    }
-
-    private void openMainMenu(Player player) {
-        Inventory inv = Bukkit.createInventory(null, getConfig().getInt("gui.size", 27), color(getConfig().getString("gui.main-title", "&6&lMSURVIVAL MENU")));
-        fill(inv);
-
-        addMenuItem(inv, "gui.items.lobby", "command:" + getConfig().getString("gui.items.lobby.command", "spawn %player%"));
-        addMenuItem(inv, "gui.items.survival", "command:" + getConfig().getString("gui.items.survival.command", "spawn %player%"));
-        addMenuItem(inv, "gui.items.keys", "keys");
-
-        player.openInventory(inv);
     }
 
     private void openKeysMenu(Player player) {
         Inventory inv = Bukkit.createInventory(null, 54, color(getConfig().getString("gui.keys-title", "&6&lKLUCZE SERWERA")));
         fill(inv);
+        addWeeklyKeyItem(inv, player);
 
         ConfigurationSection section = getConfig().getConfigurationSection("keys");
 
-        if (section == null) {
-            player.openInventory(inv);
-            return;
-        }
+        if (section != null) {
+            int slot = 10;
 
-        int slot = 10;
+            for (String key : section.getKeys(false)) {
+                if (slot >= 44) {
+                    break;
+                }
 
-        for (String key : section.getKeys(false)) {
-            if (slot >= 44) {
-                break;
-            }
+                inv.setItem(slot, createGuiKeyItem(key, player));
+                slot++;
 
-            inv.setItem(slot, createGuiKeyItem(key, player));
-            slot++;
-
-            if (slot == 17 || slot == 26 || slot == 35) {
-                slot += 2;
+                if (slot == 17 || slot == 26 || slot == 35) {
+                    slot += 2;
+                }
             }
         }
 
@@ -350,28 +249,6 @@ public final class MSurvivalKeys extends JavaPlugin implements Listener {
         }
     }
 
-    private void addMenuItem(Inventory inv, String path, String action) {
-        int slot = getConfig().getInt(path + ".slot", 13);
-        ItemStack item = new ItemStack(parseMaterial(getConfig().getString(path + ".material", "STONE")));
-        ItemMeta meta = item.getItemMeta();
-
-        if (meta != null) {
-            meta.setDisplayName(color(getConfig().getString(path + ".name", "&fItem")));
-
-            List<String> lore = new ArrayList<>();
-
-            for (String line : getConfig().getStringList(path + ".lore")) {
-                lore.add(color(line));
-            }
-
-            meta.setLore(lore);
-            meta.getPersistentDataContainer().set(menuActionKey, PersistentDataType.STRING, action);
-            item.setItemMeta(meta);
-        }
-
-        inv.setItem(slot, item);
-    }
-
     private void addWeeklyKeyItem(Inventory inv, Player player) {
         int slot = getConfig().getInt("weekly-menu.slot", 4);
         ItemStack item = new ItemStack(parseMaterial(getConfig().getString("weekly-menu.material", "CHEST")));
@@ -387,13 +264,11 @@ public final class MSurvivalKeys extends JavaPlugin implements Listener {
             boolean canClaim = last <= 0 || left <= 0L;
 
             for (String line : getConfig().getStringList("weekly-menu.lore")) {
-                lore.add(color(line
-                        .replace("%status%", canClaim ? "&aDostępny" : "&cZa " + formatTime(left))
-                        .replace("%key_name%", getKeyDisplay(getConfig().getString("settings.default-key", "klasyczny")))));
+                lore.add(color(line.replace("%status%", canClaim ? "&aDostępny" : "&cZa " + formatTime(left))));
             }
 
             meta.setLore(lore);
-            meta.getPersistentDataContainer().set(menuActionKey, PersistentDataType.STRING, "weekly");
+            meta.getPersistentDataContainer().set(guiActionKey, PersistentDataType.STRING, "weekly");
             item.setItemMeta(meta);
         }
 
@@ -416,82 +291,11 @@ public final class MSurvivalKeys extends JavaPlugin implements Listener {
             lore.add(color("&eKliknij, aby użyć."));
 
             meta.setLore(lore);
-            meta.getPersistentDataContainer().set(menuActionKey, PersistentDataType.STRING, "usekey:" + key);
+            meta.getPersistentDataContainer().set(guiActionKey, PersistentDataType.STRING, "usekey:" + key);
             item.setItemMeta(meta);
         }
 
         return item;
-    }
-
-    private ItemStack createMenuCompass() {
-        ItemStack item = new ItemStack(parseMaterial(getConfig().getString("menu-item.material", "COMPASS")));
-        ItemMeta meta = item.getItemMeta();
-
-        if (meta != null) {
-            meta.setDisplayName(color(getConfig().getString("menu-item.name", "&6&lMSurvival Menu")));
-
-            List<String> lore = new ArrayList<>();
-
-            for (String line : getConfig().getStringList("menu-item.lore")) {
-                lore.add(color(line));
-            }
-
-            meta.setLore(lore);
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-            meta.getPersistentDataContainer().set(menuItemKey, PersistentDataType.STRING, "true");
-            item.setItemMeta(meta);
-        }
-
-        return item;
-    }
-
-    private ItemStack createKeyItem(String key, int amount) {
-        ItemStack item = new ItemStack(parseMaterial(getConfig().getString("key-item.material", "LIGHTNING_ROD")), Math.max(1, amount));
-        ItemMeta meta = item.getItemMeta();
-
-        if (meta != null) {
-            meta.setDisplayName(color(getConfig().getString("key-item.name", "&6&l%key_name%")
-                    .replace("%key_name%", getKeyDisplay(key))));
-
-            List<String> lore = new ArrayList<>();
-
-            for (String line : getConfig().getStringList("key-item.lore")) {
-                lore.add(color(line
-                        .replace("%key%", key)
-                        .replace("%key_name%", getKeyDisplay(key))));
-            }
-
-            meta.setLore(lore);
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-            meta.getPersistentDataContainer().set(itemTypeKey, PersistentDataType.STRING, key);
-            item.setItemMeta(meta);
-        }
-
-        return item;
-    }
-
-    private boolean isMenuCompass(ItemStack item) {
-        if (item == null || !item.hasItemMeta()) {
-            return false;
-        }
-
-        ItemMeta meta = item.getItemMeta();
-
-        return meta != null && meta.getPersistentDataContainer().has(menuItemKey, PersistentDataType.STRING);
-    }
-
-    private String getKeyFromItem(ItemStack item) {
-        if (item == null || !item.hasItemMeta()) {
-            return null;
-        }
-
-        ItemMeta meta = item.getItemMeta();
-
-        if (meta == null) {
-            return null;
-        }
-
-        return meta.getPersistentDataContainer().get(itemTypeKey, PersistentDataType.STRING);
     }
 
     private void claimWeekly(Player player) {
@@ -510,9 +314,7 @@ public final class MSurvivalKeys extends JavaPlugin implements Listener {
         saveData();
 
         player.getInventory().addItem(createKeyItem(key, 1));
-        player.sendMessage(msg("claimed")
-                .replace("%key_name%", color(getKeyDisplay(key)))
-                .replace("%amount%", String.valueOf(getTotalKeys(player, key))));
+        player.sendMessage(msg("claimed").replace("%key_name%", color(getKeyDisplay(key))));
     }
 
     private String chooseWeeklyKey() {
@@ -520,13 +322,14 @@ public final class MSurvivalKeys extends JavaPlugin implements Listener {
             return getConfig().getString("settings.default-key", "klasyczny");
         }
 
-        org.bukkit.configuration.ConfigurationSection section = getConfig().getConfigurationSection("weekly-random.keys");
+        ConfigurationSection section = getConfig().getConfigurationSection("weekly-random.keys");
 
         if (section == null || section.getKeys(false).isEmpty()) {
             return getConfig().getString("settings.default-key", "klasyczny");
         }
 
         int total = 0;
+
         for (String key : section.getKeys(false)) {
             total += Math.max(0, section.getInt(key, 0));
         }
@@ -535,15 +338,53 @@ public final class MSurvivalKeys extends JavaPlugin implements Listener {
             return getConfig().getString("settings.default-key", "klasyczny");
         }
 
-        int roll = new java.util.Random().nextInt(total) + 1;
+        int roll = random.nextInt(total) + 1;
         int current = 0;
 
         for (String key : section.getKeys(false)) {
             current += Math.max(0, section.getInt(key, 0));
-            if (roll <= current) return normalize(key);
+
+            if (roll <= current) {
+                return normalize(key);
+            }
         }
 
         return getConfig().getString("settings.default-key", "klasyczny");
+    }
+
+    private void startKeyAnimation(Player player, String key) {
+        if (!keyExists(key)) {
+            player.sendMessage(msg("unknown-key"));
+            return;
+        }
+
+        if (!hasAnyKey(player, key)) {
+            player.sendMessage(msg("no-keys"));
+            return;
+        }
+
+        if (!getConfig().getBoolean("effects.animation", true)) {
+            useKey(player, key);
+            return;
+        }
+
+        String display = color(getKeyDisplay(key));
+
+        player.sendTitle(color("&6&lOTWIERANIE KLUCZA"), display, 5, 15, 5);
+        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 1.0f);
+
+        Bukkit.getScheduler().runTaskLater(this, () -> {
+            if (player.isOnline()) {
+                player.sendTitle(color("&e&lOTWIERANIE..."), display, 5, 15, 5);
+                player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 1.3f);
+            }
+        }, 15L);
+
+        Bukkit.getScheduler().runTaskLater(this, () -> {
+            if (player.isOnline()) {
+                useKey(player, key);
+            }
+        }, 35L);
     }
 
     private void useKey(Player player, String key) {
@@ -574,130 +415,18 @@ public final class MSurvivalKeys extends JavaPlugin implements Listener {
         player.sendMessage(msg("used").replace("%key_name%", color(getKeyDisplay(key))));
     }
 
-    private void giveOwnerSet(Player player) {
-        player.getInventory().addItem(item(Material.NETHERITE_HELMET, "&b&lHełm MILEKZ", List.of("&8Set Właściciela", "&7Zdobycie zbroi &aNurt", "&bDiamentowy materiał"),
-                new String[][]{{"protection", "4"}, {"respiration", "3"}, {"aqua_affinity", "1"}, {"thorns", "3"}, {"unbreaking", "3"}, {"mending", "1"}}));
-
-        player.getInventory().addItem(item(Material.NETHERITE_CHESTPLATE, "&b&lNapierśnik MILEKZ", List.of("&8Set Właściciela", "&7Zdobycie zbroi &aNurt", "&bDiamentowy materiał"),
-                new String[][]{{"protection", "4"}, {"thorns", "3"}, {"unbreaking", "3"}, {"mending", "1"}}));
-
-        player.getInventory().addItem(item(Material.NETHERITE_LEGGINGS, "&b&lSpodnie MILEKZ", List.of("&8Set Właściciela", "&7Zdobycie zbroi &aNurt", "&aSzmaragdowy materiał"),
-                new String[][]{{"protection", "4"}, {"thorns", "3"}, {"unbreaking", "3"}, {"mending", "1"}}));
-
-        player.getInventory().addItem(item(Material.NETHERITE_BOOTS, "&b&lButy MILEKZ", List.of("&8Set Właściciela", "&7Zdobycie zbroi &aNurt", "&bDiamentowy materiał"),
-                new String[][]{{"protection", "4"}, {"feather_falling", "4"}, {"depth_strider", "3"}, {"soul_speed", "3"}, {"thorns", "3"}, {"unbreaking", "3"}, {"mending", "1"}}));
-
-        player.getInventory().addItem(item(Material.NETHERITE_SWORD, "&c&lMieczyk", List.of("&8Broń Właściciela", "&7Najwyższy poziom MSurvival"),
-                new String[][]{{"sharpness", "5"}, {"looting", "3"}, {"fire_aspect", "2"}, {"sweeping_edge", "3"}, {"knockback", "2"}, {"unbreaking", "3"}, {"mending", "1"}}));
-
-        player.getInventory().addItem(item(Material.NETHERITE_PICKAXE, "&b&lKilof MILEKZ", List.of("&8Narzędzie Właściciela"),
-                new String[][]{{"efficiency", "5"}, {"silk_touch", "1"}, {"unbreaking", "3"}, {"mending", "1"}}));
-
-        player.getInventory().addItem(item(Material.NETHERITE_AXE, "&b&lSiekiera MILEKZ", List.of("&8Narzędzie Właściciela"),
-                new String[][]{{"efficiency", "5"}, {"smite", "5"}, {"sharpness", "3"}, {"unbreaking", "3"}, {"mending", "1"}}));
-
-        player.getInventory().addItem(item(Material.NETHERITE_SHOVEL, "&b&lŁopata MILEKZ", List.of("&8Narzędzie Właściciela"),
-                new String[][]{{"efficiency", "5"}, {"silk_touch", "1"}, {"unbreaking", "3"}, {"mending", "1"}}));
-
-        player.getInventory().addItem(item(Material.NETHERITE_HOE, "&d&lMotyczka MILEKZ", List.of("&8Narzędzie Właściciela"),
-                new String[][]{{"efficiency", "5"}, {"silk_touch", "1"}, {"unbreaking", "3"}, {"mending", "1"}}));
-
-        player.getInventory().addItem(item(Material.BOW, "&e&lŁuk Boga", List.of("&8Broń Właściciela", "&7Najlepszy łuk MSurvival"),
-                new String[][]{{"power", "5"}, {"punch", "2"}, {"flame", "1"}, {"infinity", "1"}, {"unbreaking", "3"}, {"mending", "1"}}));
-
-        player.getInventory().addItem(item(Material.TRIDENT, "&3&lTrójząb MILEKZ", List.of("&8Broń Właściciela"),
-                new String[][]{{"impaling", "5"}, {"loyalty", "3"}, {"channeling", "1"}, {"unbreaking", "3"}, {"mending", "1"}}));
-
-        Material mace = parseMaterial("MACE");
-        player.getInventory().addItem(item(mace, "&4&lBuzdygan MILEKZ", List.of("&8Broń Właściciela", "&7Zdobycie broni &aNurt", "&bDiamentowy materiał"),
-                new String[][]{{"density", "5"}, {"breach", "3"}, {"smite", "5"}, {"fire_aspect", "2"}, {"unbreaking", "3"}, {"mending", "1"}}));
-
-        player.getInventory().addItem(item(Material.ELYTRA, "&f&lElytry MILEKZ", List.of("&8Elytry Właściciela"),
-                new String[][]{{"unbreaking", "3"}, {"mending", "1"}}));
-    }
-
-    private ItemStack item(Material material, String name, List<String> lore, String[][] enchantments) {
-        ItemStack item = new ItemStack(material);
-        ItemMeta meta = item.getItemMeta();
-
-        if (meta != null) {
-            meta.setDisplayName(color(name));
-
-            List<String> coloredLore = new ArrayList<>();
-
-            for (String line : lore) {
-                coloredLore.add(color(line));
-            }
-
-            meta.setLore(coloredLore);
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
-            item.setItemMeta(meta);
-        }
-
-        for (String[] enchant : enchantments) {
-            Enchantment e = Enchantment.getByKey(NamespacedKey.minecraft(enchant[0]));
-
-            if (e != null) {
-                item.addUnsafeEnchantment(e, Integer.parseInt(enchant[1]));
-            }
-        }
-
-        return item;
-    }
-
-    private void playEffects(Player player, String key) {
-        if (!getConfig().getBoolean("effects.enabled", true)) {
-            return;
-        }
-
-        try {
-            Sound sound = Sound.valueOf(getConfig().getString("effects.sound", "ENTITY_PLAYER_LEVELUP"));
-            player.playSound(player.getLocation(), sound, 1.0f, 1.0f);
-        } catch (Exception ignored) {
-        }
-
-        player.sendTitle(
-                color(getConfig().getString("effects.title", "&6&lKLUCZ OTWARTY")),
-                color(getConfig().getString("effects.subtitle", "&7Użyto: &e%key_name%").replace("%key_name%", getKeyDisplay(key))),
-                10,
-                50,
-                10
-        );
-
-        spawnFirework(player);
-    }
-
-    private void spawnFirework(Player player) {
-        Firework firework = player.getWorld().spawn(player.getLocation(), Firework.class);
-        FireworkMeta meta = firework.getFireworkMeta();
-
-        meta.addEffect(FireworkEffect.builder()
-                .withColor(Color.ORANGE, Color.YELLOW)
-                .withFade(Color.RED)
-                .with(FireworkEffect.Type.BALL_LARGE)
-                .trail(true)
-                .flicker(true)
-                .build());
-
-        meta.setPower(1);
-        firework.setFireworkMeta(meta);
-    }
-
-    private void removeOneItem(Player player, ItemStack item) {
-        if (item.getAmount() <= 1) {
-            player.getInventory().setItemInMainHand(null);
-        } else {
-            item.setAmount(item.getAmount() - 1);
-        }
-    }
-
     private boolean isBlockedWorld(Player player) {
         for (String world : getConfig().getStringList("blocked-worlds")) {
             if (player.getWorld().getName().equalsIgnoreCase(world)) {
                 return true;
             }
         }
+
         return false;
+    }
+
+    private boolean hasAnyKey(Player player, String key) {
+        return getKeys(player.getName(), key) > 0 || countPhysicalKeys(player, key) > 0;
     }
 
     private boolean takeOneKey(Player player, String key) {
@@ -750,6 +479,173 @@ public final class MSurvivalKeys extends JavaPlugin implements Listener {
         return false;
     }
 
+    private ItemStack createKeyItem(String key, int amount) {
+        ItemStack item = new ItemStack(parseMaterial(getConfig().getString("key-item.material", "LIGHTNING_ROD")), Math.max(1, amount));
+        ItemMeta meta = item.getItemMeta();
+
+        if (meta != null) {
+            meta.setDisplayName(color(getConfig().getString("key-item.name", "&6&l%key_name%").replace("%key_name%", getKeyDisplay(key))));
+
+            List<String> lore = new ArrayList<>();
+
+            for (String line : getConfig().getStringList("key-item.lore")) {
+                lore.add(color(line.replace("%key%", key).replace("%key_name%", getKeyDisplay(key))));
+            }
+
+            meta.setLore(lore);
+            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+            meta.getPersistentDataContainer().set(keyTypeKey, PersistentDataType.STRING, key);
+            item.setItemMeta(meta);
+        }
+
+        return item;
+    }
+
+    private ItemStack createMenuItem() {
+        Material material = parseMaterial(getConfig().getString("menu-item.material", "COMPASS"));
+        ItemStack item = new ItemStack(material);
+        ItemMeta meta = item.getItemMeta();
+
+        if (meta != null) {
+            meta.setDisplayName(color(getConfig().getString("menu-item.name", "&6&lMSurvival Menu")));
+
+            List<String> lore = new ArrayList<>();
+
+            for (String line : getConfig().getStringList("menu-item.lore")) {
+                lore.add(color(line));
+            }
+
+            meta.setLore(lore);
+            item.setItemMeta(meta);
+        }
+
+        return item;
+    }
+
+    private String getKeyFromItem(ItemStack item) {
+        if (item == null || !item.hasItemMeta()) {
+            return null;
+        }
+
+        ItemMeta meta = item.getItemMeta();
+
+        if (meta == null) {
+            return null;
+        }
+
+        return meta.getPersistentDataContainer().get(keyTypeKey, PersistentDataType.STRING);
+    }
+
+    private void giveOwnerSet(Player player) {
+        player.getInventory().addItem(item(Material.NETHERITE_HELMET, "&b&lHełm MILEKZ", List.of("&8Set Właściciela", "&7Zdobycie zbroi &aNurt", "&bDiamentowy materiał"),
+                new String[][]{{"protection", "4"}, {"respiration", "3"}, {"aqua_affinity", "1"}, {"thorns", "3"}, {"unbreaking", "3"}, {"mending", "1"}}));
+
+        player.getInventory().addItem(item(Material.NETHERITE_CHESTPLATE, "&b&lNapierśnik MILEKZ", List.of("&8Set Właściciela", "&7Zdobycie zbroi &aNurt", "&bDiamentowy materiał"),
+                new String[][]{{"protection", "4"}, {"thorns", "3"}, {"unbreaking", "3"}, {"mending", "1"}}));
+
+        player.getInventory().addItem(item(Material.NETHERITE_LEGGINGS, "&b&lSpodnie MILEKZ", List.of("&8Set Właściciela", "&7Zdobycie zbroi &aNurt", "&aSzmaragdowy materiał"),
+                new String[][]{{"protection", "4"}, {"thorns", "3"}, {"unbreaking", "3"}, {"mending", "1"}}));
+
+        player.getInventory().addItem(item(Material.NETHERITE_BOOTS, "&b&lButy MILEKZ", List.of("&8Set Właściciela", "&7Zdobycie zbroi &aNurt", "&bDiamentowy materiał"),
+                new String[][]{{"protection", "4"}, {"feather_falling", "4"}, {"depth_strider", "3"}, {"soul_speed", "3"}, {"thorns", "3"}, {"unbreaking", "3"}, {"mending", "1"}}));
+
+        player.getInventory().addItem(item(Material.NETHERITE_SWORD, "&c&lMieczyk", List.of("&8Broń Właściciela"),
+                new String[][]{{"sharpness", "5"}, {"looting", "3"}, {"fire_aspect", "2"}, {"sweeping_edge", "3"}, {"knockback", "2"}, {"unbreaking", "3"}, {"mending", "1"}}));
+
+        player.getInventory().addItem(item(Material.NETHERITE_PICKAXE, "&b&lKilof MILEKZ", List.of("&8Narzędzie Właściciela"),
+                new String[][]{{"efficiency", "5"}, {"silk_touch", "1"}, {"unbreaking", "3"}, {"mending", "1"}}));
+
+        player.getInventory().addItem(item(Material.NETHERITE_AXE, "&b&lSiekiera MILEKZ", List.of("&8Narzędzie Właściciela"),
+                new String[][]{{"efficiency", "5"}, {"smite", "5"}, {"sharpness", "3"}, {"unbreaking", "3"}, {"mending", "1"}}));
+
+        player.getInventory().addItem(item(Material.NETHERITE_SHOVEL, "&b&lŁopata MILEKZ", List.of("&8Narzędzie Właściciela"),
+                new String[][]{{"efficiency", "5"}, {"silk_touch", "1"}, {"unbreaking", "3"}, {"mending", "1"}}));
+
+        player.getInventory().addItem(item(Material.NETHERITE_HOE, "&d&lMotyczka MILEKZ", List.of("&8Narzędzie Właściciela"),
+                new String[][]{{"efficiency", "5"}, {"silk_touch", "1"}, {"unbreaking", "3"}, {"mending", "1"}}));
+
+        player.getInventory().addItem(item(Material.BOW, "&e&lŁuk Boga", List.of("&8Broń Właściciela"),
+                new String[][]{{"power", "5"}, {"punch", "2"}, {"flame", "1"}, {"infinity", "1"}, {"unbreaking", "3"}, {"mending", "1"}}));
+
+        player.getInventory().addItem(item(Material.TRIDENT, "&3&lTrójząb MILEKZ", List.of("&8Broń Właściciela"),
+                new String[][]{{"impaling", "5"}, {"loyalty", "3"}, {"channeling", "1"}, {"unbreaking", "3"}, {"mending", "1"}}));
+
+        player.getInventory().addItem(item(parseMaterial("MACE"), "&4&lBuzdygan MILEKZ", List.of("&8Broń Właściciela", "&7Zdobycie broni &aNurt", "&bDiamentowy materiał"),
+                new String[][]{{"density", "5"}, {"breach", "3"}, {"smite", "5"}, {"fire_aspect", "2"}, {"unbreaking", "3"}, {"mending", "1"}}));
+
+        player.getInventory().addItem(item(Material.ELYTRA, "&f&lElytry MILEKZ", List.of("&8Elytry Właściciela"),
+                new String[][]{{"unbreaking", "3"}, {"mending", "1"}}));
+    }
+
+    private ItemStack item(Material material, String name, List<String> lore, String[][] enchantments) {
+        ItemStack item = new ItemStack(material);
+        ItemMeta meta = item.getItemMeta();
+
+        if (meta != null) {
+            meta.setDisplayName(color(name));
+
+            List<String> coloredLore = new ArrayList<>();
+
+            for (String line : lore) {
+                coloredLore.add(color(line));
+            }
+
+            meta.setLore(coloredLore);
+            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+            item.setItemMeta(meta);
+        }
+
+        for (String[] enchant : enchantments) {
+            Enchantment e = Enchantment.getByKey(NamespacedKey.minecraft(enchant[0]));
+
+            if (e != null) {
+                item.addUnsafeEnchantment(e, Integer.parseInt(enchant[1]));
+            }
+        }
+
+        return item;
+    }
+
+    private void playEffects(Player player, String key) {
+        if (!getConfig().getBoolean("effects.enabled", true)) {
+            return;
+        }
+
+        try {
+            Sound sound = Sound.valueOf(getConfig().getString("effects.sound", "ENTITY_PLAYER_LEVELUP"));
+            player.playSound(player.getLocation(), sound, 1.0f, 1.0f);
+        } catch (Exception ignored) {
+        }
+
+        player.sendTitle(
+                color(getConfig().getString("effects.title", "&6&lOTWIERANIE KLUCZA")),
+                color(getConfig().getString("effects.subtitle", "&7Użyto: &e%key_name%").replace("%key_name%", getKeyDisplay(key))),
+                10,
+                50,
+                10
+        );
+
+        if (getConfig().getBoolean("effects.fireworks", true)) {
+            spawnFirework(player);
+        }
+    }
+
+    private void spawnFirework(Player player) {
+        Firework firework = player.getWorld().spawn(player.getLocation(), Firework.class);
+        FireworkMeta meta = firework.getFireworkMeta();
+
+        meta.addEffect(FireworkEffect.builder()
+                .withColor(Color.ORANGE, Color.YELLOW)
+                .withFade(Color.RED)
+                .with(FireworkEffect.Type.BALL_LARGE)
+                .trail(true)
+                .flicker(true)
+                .build());
+
+        meta.setPower(1);
+        firework.setFireworkMeta(meta);
+    }
+
     private void addKeys(String name, String key, int amount) {
         setKeys(name, key, getKeys(name, key) + amount);
     }
@@ -769,6 +665,14 @@ public final class MSurvivalKeys extends JavaPlugin implements Listener {
 
     private String getKeyDisplay(String key) {
         return getConfig().getString("keys." + normalize(key) + ".display", key);
+    }
+
+    private int parseAmount(String value) {
+        try {
+            return Math.max(1, Integer.parseInt(value));
+        } catch (NumberFormatException e) {
+            return 1;
+        }
     }
 
     private Material parseMaterial(String value) {
@@ -815,7 +719,10 @@ public final class MSurvivalKeys extends JavaPlugin implements Listener {
     }
 
     private String color(String text) {
-        if (text == null) return "";
+        if (text == null) {
+            return "";
+        }
+
         return ChatColor.translateAlternateColorCodes('&', text);
     }
 
