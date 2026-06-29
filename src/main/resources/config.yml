@@ -1,9 +1,7 @@
 settings:
   cooldown-seconds: 604800
-
 blocked-worlds:
   - Lobby
-
 weekly:
   slot: 4
   material: CHEST
@@ -14,11 +12,10 @@ weekly:
     - ""
     - "&f85% &7Klasyczny"
     - "&f15% &7Żelazny"
-
 gui:
-  title: "&6&lKLUCZE I KITY"
+  keys-title: "&6&lTWOJE KLUCZE"
+  kits-title: "&b&lKITY ZA KLUCZE"
   filler: BLACK_STAINED_GLASS_PANE
-
 key-item:
   material: LIGHTNING_ROD
   name: "&6&l%key_name%"
@@ -26,120 +23,79 @@ key-item:
     - "&8MSurvival Key"
     - "&7Typ: &f%key_name%"
     - ""
-    - "&eKliknij PPM, aby otworzyć kit."
-
+    - "&eFizyczny klucz do kita."
 messages:
   prefix: "&6&lMSurvivalKeys &8» &r"
   no-permission: "&cNie masz uprawnień."
   reload: "&aPrzeładowano config."
   cooldown: "&cKlucz tygodniowy za: &e%time%"
   claimed: "&aOdebrano: &e%key%"
-  no-key: "&cNie masz takiego klucza."
+  no-key: "&cNie masz wymaganego klucza: &e%key%"
   blocked: "&cKity otwieraj na survivalu, nie w lobby."
   opened: "&aOtworzono kit: &e%kit%"
+  withdrawn: "&aWyjęto klucz do ekwipunku: &e%key%"
   admin-give: "&aDodano klucz &e%key% &adla &e%player%&a."
   admin-item: "&aDano fizyczny klucz &e%key% &adla &e%player%&a."
-
 keys:
-  klasyczny:
-    display: "&f&lKlucz Klasyczny"
-    kit: klasyczny
-  zelazny:
-    display: "&7&lKlucz Żelazny"
-    kit: zelazny
-  diamentowy:
-    display: "&b&lKlucz Diamentowy"
-    kit: diamentowy
-  epic:
-    display: "&5&lKlucz Epic"
-    random-kits:
-      epic: 80
-      legendarny: 20
-  legendarny:
-    display: "&6&lKlucz Legendarny"
-    random-kits:
-      legendarny: 75
-      mityczny: 20
-      boski: 5
-  mityczny:
-    display: "&d&lKlucz Mityczny"
-    random-kits:
-      mityczny: 80
-      boski: 20
-  boski:
-    display: "&4&lKlucz Boski"
-    kit: boski
-
+  klasyczny: {display: "&f&lKlucz Klasyczny"}
+  zelazny: {display: "&7&lKlucz Żelazny"}
+  diamentowy: {display: "&b&lKlucz Diamentowy"}
+  epic: {display: "&5&lKlucz Epic"}
+  legendarny: {display: "&6&lKlucz Legendarny"}
+  mityczny: {display: "&d&lKlucz Mityczny"}
+  boski: {display: "&4&lKlucz Boski"}
 weekly-random:
   klasyczny: 85
   zelazny: 15
-
 kits:
   klasyczny:
-    rewards:
-      - "give %player% bread 32"
-      - "give %player% copper_ingot 32"
-      - "give %player% iron_ingot 16"
-      - "give %player% stone_sword 1"
-      - "give %player% stone_pickaxe 1"
+    slot: 10
+    material: STONE_SWORD
+    name: "&f&lKit Klasyczny"
+    required-key: klasyczny
+    rewards: ["give %player% bread 32", "give %player% copper_ingot 32", "give %player% iron_ingot 16", "give %player% stone_sword 1", "give %player% stone_pickaxe 1"]
   zelazny:
-    rewards:
-      - "give %player% iron_helmet 1"
-      - "give %player% iron_chestplate 1"
-      - "give %player% iron_leggings 1"
-      - "give %player% iron_boots 1"
-      - "give %player% iron_sword 1"
-      - "give %player% iron_pickaxe 1"
-      - "give %player% bow 1"
-      - "give %player% arrow 32"
-      - "give %player% golden_apple 2"
+    slot: 11
+    material: IRON_CHESTPLATE
+    name: "&7&lKit Żelazny"
+    required-key: zelazny
+    rewards: ["give %player% iron_helmet 1", "give %player% iron_chestplate 1", "give %player% iron_leggings 1", "give %player% iron_boots 1", "give %player% iron_sword 1", "give %player% iron_pickaxe 1", "give %player% bow 1", "give %player% arrow 32", "give %player% golden_apple 2"]
   diamentowy:
-    rewards:
-      - "give %player% diamond_helmet 1"
-      - "give %player% diamond_chestplate 1"
-      - "give %player% diamond_leggings 1"
-      - "give %player% diamond_boots 1"
-      - "give %player% diamond_sword 1"
-      - "give %player% diamond_pickaxe 1"
-      - "give %player% bow 1"
-      - "give %player% arrow 64"
-      - "give %player% golden_apple 6"
+    slot: 12
+    material: DIAMOND_CHESTPLATE
+    name: "&b&lKit Diamentowy"
+    required-key: diamentowy
+    rewards: ["give %player% diamond_helmet 1", "give %player% diamond_chestplate 1", "give %player% diamond_leggings 1", "give %player% diamond_boots 1", "give %player% diamond_sword 1", "give %player% diamond_pickaxe 1", "give %player% bow 1", "give %player% arrow 64", "give %player% golden_apple 6"]
   epic:
-    rewards:
-      - "give %player% diamond_helmet 1"
-      - "give %player% diamond_chestplate 1"
-      - "give %player% diamond_leggings 1"
-      - "give %player% diamond_boots 1"
-      - "give %player% diamond_sword 1"
-      - "give %player% diamond_pickaxe 1"
-      - "give %player% golden_apple 10"
-      - "give %player% ender_pearl 16"
+    slot: 13
+    material: ENCHANTED_GOLDEN_APPLE
+    name: "&5&lKit Epic"
+    required-key: epic
+    rewards: ["give %player% diamond_helmet 1", "give %player% diamond_chestplate 1", "give %player% diamond_leggings 1", "give %player% diamond_boots 1", "give %player% diamond_sword 1", "give %player% diamond_pickaxe 1", "give %player% golden_apple 10", "give %player% ender_pearl 16"]
   legendarny:
-    rewards:
-      - "give %player% netherite_helmet 1"
-      - "give %player% netherite_chestplate 1"
-      - "give %player% netherite_leggings 1"
-      - "give %player% netherite_boots 1"
-      - "give %player% netherite_sword 1"
-      - "give %player% netherite_pickaxe 1"
-      - "give %player% golden_apple 16"
-      - "give %player% netherite_ingot 4"
+    slot: 14
+    material: NETHERITE_CHESTPLATE
+    name: "&6&lKit Legendarny"
+    required-key: legendarny
+    random-rewards: {legendarny: 80, mityczny: 15, boski: 5}
   mityczny:
-    rewards:
-      - "give %player% netherite_helmet 1"
-      - "give %player% netherite_chestplate 1"
-      - "give %player% netherite_leggings 1"
-      - "give %player% netherite_boots 1"
-      - "give %player% netherite_sword 1"
-      - "give %player% netherite_pickaxe 1"
-      - "give %player% golden_apple 24"
-      - "give %player% enchanted_golden_apple 2"
-      - "give %player% netherite_ingot 8"
+    slot: 15
+    material: NETHER_STAR
+    name: "&d&lKit Mityczny"
+    required-key: mityczny
+    random-rewards: {mityczny: 80, boski: 20}
+  boski:
+    slot: 16
+    material: DRAGON_EGG
+    name: "&4&lKit Boski"
+    required-key: boski
+    owner-set: true
+    rewards: ["give %player% golden_apple 64", "give %player% enchanted_golden_apple 16", "give %player% firework_rocket 64", "give %player% netherite_ingot 16", "give %player% totem_of_undying 5"]
+reward-sets:
+  legendarny:
+    rewards: ["give %player% netherite_helmet 1", "give %player% netherite_chestplate 1", "give %player% netherite_leggings 1", "give %player% netherite_boots 1", "give %player% netherite_sword 1", "give %player% netherite_pickaxe 1", "give %player% golden_apple 16", "give %player% netherite_ingot 4"]
+  mityczny:
+    rewards: ["give %player% netherite_helmet 1", "give %player% netherite_chestplate 1", "give %player% netherite_leggings 1", "give %player% netherite_boots 1", "give %player% netherite_sword 1", "give %player% netherite_pickaxe 1", "give %player% golden_apple 24", "give %player% enchanted_golden_apple 2", "give %player% netherite_ingot 8"]
   boski:
     owner-set: true
-    rewards:
-      - "give %player% golden_apple 64"
-      - "give %player% enchanted_golden_apple 16"
-      - "give %player% firework_rocket 64"
-      - "give %player% netherite_ingot 16"
-      - "give %player% totem_of_undying 5"
+    rewards: ["give %player% golden_apple 64", "give %player% enchanted_golden_apple 16", "give %player% firework_rocket 64", "give %player% netherite_ingot 16", "give %player% totem_of_undying 5"]
