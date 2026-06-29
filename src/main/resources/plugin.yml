@@ -1,21 +1,15 @@
 name: MSurvivalKeys
-version: 5.1
+version: 2.0
 main: pl.msurvival.keys.MSurvivalKeys
 api-version: '1.21'
 author: Milekz
 
 commands:
   keysmenu:
-    description: Otwiera menu kluczy
     usage: /keysmenu
-  menuitem:
-    description: Daje kompas menu
-    usage: /menuitem
   key:
-    description: Uzywa klucza
     usage: /key use <typ>
   keyadmin:
-    description: Administracja kluczami
     usage: /keyadmin <give|item|reset|reload> <gracz> [typ] [ilosc]
 
 permissions:

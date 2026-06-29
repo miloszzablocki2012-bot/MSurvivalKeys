@@ -1,742 +1,144 @@
 package pl.msurvival.keys;
 
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Color;
-import org.bukkit.FireworkEffect;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Sound;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.enchantments.Enchantment;
-import org.bukkit.entity.Firework;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
+import org.bukkit.event.*;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemFlag;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.FireworkMeta;
+import org.bukkit.inventory.*;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Random;
+import java.io.*;
+import java.util.*;
 
 @SuppressWarnings("deprecation")
 public final class MSurvivalKeys extends JavaPlugin implements Listener {
-
+    private NamespacedKey keyKey, actionKey;
     private File dataFile;
-    private FileConfiguration data;
-    private NamespacedKey keyTypeKey;
-    private NamespacedKey guiActionKey;
+    private YamlConfiguration data;
     private final Random random = new Random();
 
-    @Override
-    public void onEnable() {
-        saveDefaultConfig();
-        loadData();
+    @Override public void onEnable(){ saveDefaultConfig(); loadData(); keyKey=new NamespacedKey(this,"key_type"); actionKey=new NamespacedKey(this,"action"); Bukkit.getPluginManager().registerEvents(this,this); commands(); }
 
-        keyTypeKey = new NamespacedKey(this, "key_type");
-        guiActionKey = new NamespacedKey(this, "gui_action");
-
-        Bukkit.getPluginManager().registerEvents(this, this);
-        registerCommands();
-    }
-
-    private void registerCommands() {
-        getCommand("keysmenu").setExecutor((sender, command, label, args) -> {
-            if (sender instanceof Player player) {
-                openKeysMenu(player);
-            }
-            return true;
-        });
-
-        getCommand("menuitem").setExecutor((sender, command, label, args) -> {
-            if (sender instanceof Player player) {
-                player.getInventory().addItem(createMenuItem());
-                player.sendMessage(msg("menuitem-given"));
-            }
-            return true;
-        });
-
-        getCommand("key").setExecutor((sender, command, label, args) -> {
-            if (!(sender instanceof Player player)) {
-                return true;
-            }
-
-            if (args.length < 2 || !args[0].equalsIgnoreCase("use")) {
-                player.sendMessage(msg("usage-key"));
-                return true;
-            }
-
-            startKeyAnimation(player, normalize(args[1]));
-            return true;
-        });
-
-        getCommand("keyadmin").setExecutor((sender, command, label, args) -> {
-            if (!sender.hasPermission("msurvivalkeys.admin")) {
-                sender.sendMessage(msg("no-permission"));
-                return true;
-            }
-
-            if (args.length >= 1 && args[0].equalsIgnoreCase("reload")) {
-                reloadConfig();
-                sender.sendMessage(msg("reload"));
-                return true;
-            }
-
-            if (args.length < 2) {
-                sender.sendMessage(msg("usage-admin"));
-                return true;
-            }
-
-            String action = args[0].toLowerCase(Locale.ROOT);
-            String targetName = args[1];
-
-            if (action.equals("reset")) {
-                data.set(path(targetName) + ".lastClaim", 0L);
-                saveData();
-                sender.sendMessage(msg("admin-reset").replace("%player%", targetName));
-                return true;
-            }
-
-            String key = args.length >= 3 ? normalize(args[2]) : getConfig().getString("settings.default-key", "klasyczny");
-            int amount = parseAmount(args.length >= 4 ? args[3] : "1");
-
-            if (!keyExists(key)) {
-                sender.sendMessage(msg("unknown-key"));
-                return true;
-            }
-
-            if (action.equals("give")) {
-                addKeys(targetName, key, amount);
-                sender.sendMessage(msg("admin-give")
-                        .replace("%player%", targetName)
-                        .replace("%amount%", String.valueOf(amount))
-                        .replace("%key_name%", color(getKeyDisplay(key))));
-                return true;
-            }
-
-            if (action.equals("item")) {
-                Player target = Bukkit.getPlayerExact(targetName);
-
-                if (target == null) {
-                    sender.sendMessage(color("&cGracz musi być online."));
-                    return true;
-                }
-
-                target.getInventory().addItem(createKeyItem(key, amount));
-                sender.sendMessage(msg("key-given-item").replace("%key_name%", color(getKeyDisplay(key))));
-                return true;
-            }
-
-            sender.sendMessage(msg("usage-admin"));
+    private void commands(){
+        getCommand("keysmenu").setExecutor((s,c,l,a)->{ if(s instanceof Player p) openMenu(p); return true; });
+        getCommand("key").setExecutor((s,c,l,a)->{ if(!(s instanceof Player p)) return true; if(a.length<2 || !a[0].equalsIgnoreCase("use")) return true; openKey(p, norm(a[1])); return true; });
+        getCommand("keyadmin").setExecutor((s,c,l,a)->{
+            if(!s.hasPermission("msurvivalkeys.admin")){ s.sendMessage(msg("no-permission")); return true; }
+            if(a.length>=1 && a[0].equalsIgnoreCase("reload")){ reloadConfig(); s.sendMessage(msg("reload")); return true; }
+            if(a.length<3){ s.sendMessage(color("&c/keyadmin <give|item|reset> <gracz> <klucz> [ilosc]")); return true; }
+            String mode=a[0].toLowerCase(Locale.ROOT), player=a[1], key=norm(a[2]); int amount=a.length>=4?parse(a[3]):1;
+            if(mode.equals("reset")){ data.set(path(player)+".lastWeekly",0L); saveData(); return true; }
+            if(!getConfig().contains("keys."+key)){ s.sendMessage(color("&cNie ma klucza.")); return true; }
+            if(mode.equals("give")){ setKeys(player,key,getKeys(player,key)+amount); s.sendMessage(msg("admin-give").replace("%key%", key).replace("%player%", player)); return true; }
+            if(mode.equals("item")){ Player t=Bukkit.getPlayerExact(player); if(t==null){s.sendMessage(color("&cGracz offline.")); return true;} t.getInventory().addItem(keyItem(key,amount)); s.sendMessage(msg("admin-item").replace("%key%", key).replace("%player%", player)); return true; }
             return true;
         });
     }
 
-    @EventHandler
-    public void onItemClick(PlayerInteractEvent event) {
-        Action action = event.getAction();
+    @EventHandler public void click(PlayerInteractEvent e){ Action a=e.getAction(); if(a!=Action.RIGHT_CLICK_AIR && a!=Action.RIGHT_CLICK_BLOCK) return; String key=itemKey(e.getItem()); if(key==null) return; e.setCancelled(true); openKey(e.getPlayer(), key); }
 
-        if (action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK) {
-            return;
-        }
-
-        String key = getKeyFromItem(event.getItem());
-
-        if (key == null) {
-            return;
-        }
-
-        event.setCancelled(true);
-        startKeyAnimation(event.getPlayer(), key);
+    @EventHandler public void gui(InventoryClickEvent e){
+        if(!(e.getWhoClicked() instanceof Player p)) return;
+        if(!e.getView().getTitle().equals(color(getConfig().getString("gui.title")))) return;
+        e.setCancelled(true);
+        ItemStack it=e.getCurrentItem(); if(it==null || !it.hasItemMeta()) return;
+        String action=it.getItemMeta().getPersistentDataContainer().get(actionKey, PersistentDataType.STRING);
+        if(action==null) return;
+        p.closeInventory();
+        if(action.equals("weekly")) weekly(p);
+        else if(action.startsWith("key:")) openKey(p, action.substring(4));
     }
 
-    @EventHandler
-    public void onGuiClick(InventoryClickEvent event) {
-        if (!(event.getWhoClicked() instanceof Player player)) {
-            return;
-        }
-
-        if (!event.getView().getTitle().equals(color(getConfig().getString("gui.keys-title", "&6&lKLUCZE SERWERA")))) {
-            return;
-        }
-
-        event.setCancelled(true);
-
-        ItemStack item = event.getCurrentItem();
-
-        if (item == null || !item.hasItemMeta()) {
-            return;
-        }
-
-        ItemMeta meta = item.getItemMeta();
-
-        if (meta == null) {
-            return;
-        }
-
-        String action = meta.getPersistentDataContainer().get(guiActionKey, PersistentDataType.STRING);
-
-        if (action == null) {
-            return;
-        }
-
-        player.closeInventory();
-
-        if (action.equals("weekly")) {
-            claimWeekly(player);
-            return;
-        }
-
-        if (action.startsWith("usekey:")) {
-            startKeyAnimation(player, action.substring("usekey:".length()));
-        }
+    private void openMenu(Player p){
+        Inventory inv=Bukkit.createInventory(null,54,color(getConfig().getString("gui.title")));
+        ItemStack fill=named(mat(getConfig().getString("gui.filler"))," "); for(int i=0;i<54;i++) inv.setItem(i,fill);
+        inv.setItem(getConfig().getInt("weekly.slot",4), actionItem(mat(getConfig().getString("weekly.material")), getConfig().getString("weekly.name"), weeklyLore(p), "weekly"));
+        int slot=10; ConfigurationSection sec=getConfig().getConfigurationSection("keys");
+        if(sec!=null) for(String key:sec.getKeys(false)){ if(slot>=44) break; inv.setItem(slot, actionItem(Material.LIGHTNING_ROD, getConfig().getString("keys."+key+".display"), List.of("&7Posiadasz: &e"+totalKeys(p,key), "&eKliknij, aby otworzyć."), "key:"+key)); slot++; if(slot==17||slot==26||slot==35) slot+=2; }
+        p.openInventory(inv);
     }
 
-    private void openKeysMenu(Player player) {
-        Inventory inv = Bukkit.createInventory(null, 54, color(getConfig().getString("gui.keys-title", "&6&lKLUCZE SERWERA")));
-        fill(inv);
-        addWeeklyKeyItem(inv, player);
-
-        ConfigurationSection section = getConfig().getConfigurationSection("keys");
-
-        if (section != null) {
-            int slot = 10;
-
-            for (String key : section.getKeys(false)) {
-                if (slot >= 44) {
-                    break;
-                }
-
-                inv.setItem(slot, createGuiKeyItem(key, player));
-                slot++;
-
-                if (slot == 17 || slot == 26 || slot == 35) {
-                    slot += 2;
-                }
-            }
-        }
-
-        player.openInventory(inv);
+    private List<String> weeklyLore(Player p){
+        long cd=getConfig().getLong("settings.cooldown-seconds")*1000L, last=data.getLong(path(p.getName())+".lastWeekly",0), left=Math.max(0, cd-(System.currentTimeMillis()-last));
+        String status=(last<=0||left<=0)?"&aDostępny":"&cZa "+time(left);
+        List<String> list=new ArrayList<>(); for(String s:getConfig().getStringList("weekly.lore")) list.add(s.replace("%status%", status)); return list;
     }
 
-    private void fill(Inventory inv) {
-        Material filler = parseMaterial(getConfig().getString("gui.filler", "BLACK_STAINED_GLASS_PANE"));
-        ItemStack item = new ItemStack(filler);
-        ItemMeta meta = item.getItemMeta();
-
-        if (meta != null) {
-            meta.setDisplayName(" ");
-            item.setItemMeta(meta);
-        }
-
-        for (int i = 0; i < inv.getSize(); i++) {
-            inv.setItem(i, item);
-        }
+    private void weekly(Player p){
+        long cd=getConfig().getLong("settings.cooldown-seconds")*1000L, last=data.getLong(path(p.getName())+".lastWeekly",0), left=Math.max(0, cd-(System.currentTimeMillis()-last));
+        if(last>0 && left>0){ p.sendMessage(msg("cooldown").replace("%time%", time(left))); return; }
+        String key=roll("weekly-random");
+        data.set(path(p.getName())+".lastWeekly",System.currentTimeMillis()); saveData();
+        p.getInventory().addItem(keyItem(key,1));
+        p.sendMessage(msg("claimed").replace("%key%", display(key)));
     }
 
-    private void addWeeklyKeyItem(Inventory inv, Player player) {
-        int slot = getConfig().getInt("weekly-menu.slot", 4);
-        ItemStack item = new ItemStack(parseMaterial(getConfig().getString("weekly-menu.material", "CHEST")));
-        ItemMeta meta = item.getItemMeta();
-
-        if (meta != null) {
-            meta.setDisplayName(color(getConfig().getString("weekly-menu.name", "&a&lOdbierz cotygodniowy klucz")));
-
-            List<String> lore = new ArrayList<>();
-            long cooldown = getConfig().getLong("settings.cooldown-seconds", 604800L) * 1000L;
-            long last = data.getLong(path(player.getName()) + ".lastClaim", 0L);
-            long left = Math.max(0L, cooldown - (System.currentTimeMillis() - last));
-            boolean canClaim = last <= 0 || left <= 0L;
-
-            for (String line : getConfig().getStringList("weekly-menu.lore")) {
-                lore.add(color(line.replace("%status%", canClaim ? "&aDostępny" : "&cZa " + formatTime(left))));
-            }
-
-            meta.setLore(lore);
-            meta.getPersistentDataContainer().set(guiActionKey, PersistentDataType.STRING, "weekly");
-            item.setItemMeta(meta);
-        }
-
-        inv.setItem(slot, item);
+    private void openKey(Player p,String key){
+        if(blocked(p)){ p.sendMessage(msg("blocked")); return; }
+        if(!hasKey(p,key)){ p.sendMessage(msg("no-key")); return; }
+        takeKey(p,key);
+        p.sendTitle(color("&6&lOTWIERANIE KITU"), color(display(key)), 5,25,5);
+        p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING,1,1);
+        Bukkit.getScheduler().runTaskLater(this, ()->{ if(p.isOnline()) giveKitFromKey(p,key); }, 25L);
     }
 
-    private ItemStack createGuiKeyItem(String key, Player player) {
-        ItemStack item = new ItemStack(parseMaterial(getConfig().getString("keys." + key + ".material", "LIGHTNING_ROD")));
-        ItemMeta meta = item.getItemMeta();
-
-        if (meta != null) {
-            meta.setDisplayName(color(getKeyDisplay(key)));
-
-            List<String> lore = new ArrayList<>();
-            lore.add(color("&8MSurvival Key"));
-            lore.add("");
-            lore.add(color("&7Posiadasz: &e" + getTotalKeys(player, key)));
-            lore.add(color(getConfig().getString("keys." + key + ".price-info", "&7Brak informacji.")));
-            lore.add("");
-            lore.add(color("&eKliknij, aby użyć."));
-
-            meta.setLore(lore);
-            meta.getPersistentDataContainer().set(guiActionKey, PersistentDataType.STRING, "usekey:" + key);
-            item.setItemMeta(meta);
-        }
-
-        return item;
+    private void giveKitFromKey(Player p,String key){
+        String kit=getConfig().getString("keys."+key+".kit", null);
+        if(kit==null && getConfig().contains("keys."+key+".random-kits")) kit=roll("keys."+key+".random-kits");
+        if(kit==null) kit=key;
+        if(getConfig().getBoolean("kits."+kit+".owner-set",false)) ownerSet(p);
+        for(String cmd:getConfig().getStringList("kits."+kit+".rewards")) Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd.replace("%player%",p.getName()));
+        p.sendMessage(msg("opened").replace("%kit%", kit));
+        p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_LEVELUP,1,1);
     }
 
-    private void claimWeekly(Player player) {
-        String key = chooseWeeklyKey();
-        String p = path(player.getName());
-        long cooldown = getConfig().getLong("settings.cooldown-seconds", 604800L) * 1000L;
-        long now = System.currentTimeMillis();
-        long last = data.getLong(p + ".lastClaim", 0L);
+    private String roll(String path){ ConfigurationSection s=getConfig().getConfigurationSection(path); if(s==null) return "klasyczny"; int total=0; for(String k:s.getKeys(false)) total+=Math.max(0,s.getInt(k)); int r=random.nextInt(Math.max(1,total))+1,c=0; for(String k:s.getKeys(false)){ c+=Math.max(0,s.getInt(k)); if(r<=c) return norm(k); } return "klasyczny"; }
+    private boolean blocked(Player p){ for(String w:getConfig().getStringList("blocked-worlds")) if(p.getWorld().getName().equalsIgnoreCase(w)) return true; return false; }
 
-        if (last > 0 && now - last < cooldown) {
-            player.sendMessage(msg("cooldown").replace("%time%", formatTime(cooldown - (now - last))));
-            return;
-        }
-
-        data.set(p + ".lastClaim", now);
-        saveData();
-
-        player.getInventory().addItem(createKeyItem(key, 1));
-        player.sendMessage(msg("claimed").replace("%key_name%", color(getKeyDisplay(key))));
+    private ItemStack keyItem(String key,int amount){
+        ItemStack it=new ItemStack(mat(getConfig().getString("key-item.material")), amount);
+        ItemMeta m=it.getItemMeta(); m.setDisplayName(color(getConfig().getString("key-item.name").replace("%key_name%",display(key))));
+        List<String> lore=new ArrayList<>(); for(String s:getConfig().getStringList("key-item.lore")) lore.add(color(s.replace("%key%",key).replace("%key_name%",display(key))));
+        m.setLore(lore); m.getPersistentDataContainer().set(keyKey, PersistentDataType.STRING, key); it.setItemMeta(m); return it;
     }
 
-    private String chooseWeeklyKey() {
-        if (!getConfig().getBoolean("weekly-random.enabled", true)) {
-            return getConfig().getString("settings.default-key", "klasyczny");
-        }
+    private ItemStack actionItem(Material mat,String name,List<String> lore,String action){ ItemStack it=named(mat,name); ItemMeta m=it.getItemMeta(); List<String> l=new ArrayList<>(); for(String s:lore) l.add(color(s)); m.setLore(l); m.getPersistentDataContainer().set(actionKey, PersistentDataType.STRING, action); it.setItemMeta(m); return it; }
+    private ItemStack named(Material mat,String name){ ItemStack it=new ItemStack(mat); ItemMeta m=it.getItemMeta(); m.setDisplayName(color(name)); it.setItemMeta(m); return it; }
+    private String itemKey(ItemStack it){ if(it==null || !it.hasItemMeta()) return null; return it.getItemMeta().getPersistentDataContainer().get(keyKey, PersistentDataType.STRING); }
+    private boolean hasKey(Player p,String key){ return getKeys(p.getName(),key)>0 || countPhysical(p,key)>0; }
+    private void takeKey(Player p,String key){ int v=getKeys(p.getName(),key); if(v>0){ setKeys(p.getName(),key,v-1); return; } removePhysical(p,key); }
+    private int countPhysical(Player p,String key){ int c=0; for(ItemStack it:p.getInventory().getContents()) if(key.equals(itemKey(it))) c+=it.getAmount(); return c; }
+    private void removePhysical(Player p,String key){ ItemStack[] c=p.getInventory().getContents(); for(int i=0;i<c.length;i++){ if(key.equals(itemKey(c[i]))){ if(c[i].getAmount()<=1) p.getInventory().setItem(i,null); else c[i].setAmount(c[i].getAmount()-1); return; } } }
+    private int totalKeys(Player p,String key){ return getKeys(p.getName(),key)+countPhysical(p,key); }
+    private int getKeys(String player,String key){ return data.getInt(path(player)+".keys."+key,0); }
+    private void setKeys(String player,String key,int amount){ data.set(path(player)+".keys."+key,Math.max(0,amount)); saveData(); }
 
-        ConfigurationSection section = getConfig().getConfigurationSection("weekly-random.keys");
-
-        if (section == null || section.getKeys(false).isEmpty()) {
-            return getConfig().getString("settings.default-key", "klasyczny");
-        }
-
-        int total = 0;
-
-        for (String key : section.getKeys(false)) {
-            total += Math.max(0, section.getInt(key, 0));
-        }
-
-        if (total <= 0) {
-            return getConfig().getString("settings.default-key", "klasyczny");
-        }
-
-        int roll = random.nextInt(total) + 1;
-        int current = 0;
-
-        for (String key : section.getKeys(false)) {
-            current += Math.max(0, section.getInt(key, 0));
-
-            if (roll <= current) {
-                return normalize(key);
-            }
-        }
-
-        return getConfig().getString("settings.default-key", "klasyczny");
+    private void ownerSet(Player p){
+        p.getInventory().addItem(enchant(Material.NETHERITE_HELMET,"&b&lHełm MILEKZ",new String[][]{{"protection","4"},{"respiration","3"},{"aqua_affinity","1"},{"thorns","3"},{"unbreaking","3"},{"mending","1"}}));
+        p.getInventory().addItem(enchant(Material.NETHERITE_CHESTPLATE,"&b&lNapierśnik MILEKZ",new String[][]{{"protection","4"},{"thorns","3"},{"unbreaking","3"},{"mending","1"}}));
+        p.getInventory().addItem(enchant(Material.NETHERITE_LEGGINGS,"&b&lSpodnie MILEKZ",new String[][]{{"protection","4"},{"thorns","3"},{"unbreaking","3"},{"mending","1"}}));
+        p.getInventory().addItem(enchant(Material.NETHERITE_BOOTS,"&b&lButy MILEKZ",new String[][]{{"protection","4"},{"feather_falling","4"},{"depth_strider","3"},{"soul_speed","3"},{"thorns","3"},{"unbreaking","3"},{"mending","1"}}));
+        p.getInventory().addItem(enchant(Material.NETHERITE_SWORD,"&c&lMieczyk",new String[][]{{"sharpness","5"},{"looting","3"},{"fire_aspect","2"},{"sweeping_edge","3"},{"knockback","2"},{"unbreaking","3"},{"mending","1"}}));
+        p.getInventory().addItem(enchant(Material.BOW,"&e&lŁuk Boga",new String[][]{{"power","5"},{"punch","2"},{"flame","1"},{"infinity","1"},{"unbreaking","3"},{"mending","1"}}));
+        p.getInventory().addItem(enchant(mat("MACE"),"&4&lBuzdygan MILEKZ",new String[][]{{"density","5"},{"breach","3"},{"smite","5"},{"unbreaking","3"},{"mending","1"}}));
     }
-
-    private void startKeyAnimation(Player player, String key) {
-        if (!keyExists(key)) {
-            player.sendMessage(msg("unknown-key"));
-            return;
-        }
-
-        if (!hasAnyKey(player, key)) {
-            player.sendMessage(msg("no-keys"));
-            return;
-        }
-
-        if (!getConfig().getBoolean("effects.animation", true)) {
-            useKey(player, key);
-            return;
-        }
-
-        String display = color(getKeyDisplay(key));
-
-        player.sendTitle(color("&6&lOTWIERANIE KLUCZA"), display, 5, 15, 5);
-        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 1.0f);
-
-        Bukkit.getScheduler().runTaskLater(this, () -> {
-            if (player.isOnline()) {
-                player.sendTitle(color("&e&lOTWIERANIE..."), display, 5, 15, 5);
-                player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 1.3f);
-            }
-        }, 15L);
-
-        Bukkit.getScheduler().runTaskLater(this, () -> {
-            if (player.isOnline()) {
-                useKey(player, key);
-            }
-        }, 35L);
-    }
-
-    private void useKey(Player player, String key) {
-        if (isBlockedWorld(player)) {
-            player.sendMessage(msg("cannot-use-in-lobby"));
-            return;
-        }
-
-        if (!keyExists(key)) {
-            player.sendMessage(msg("unknown-key"));
-            return;
-        }
-
-        if (!takeOneKey(player, key)) {
-            player.sendMessage(msg("no-keys"));
-            return;
-        }
-
-        if (getConfig().getBoolean("keys." + key + ".owner-set", false)) {
-            giveOwnerSet(player);
-        }
-
-        for (String command : getConfig().getStringList("keys." + key + ".rewards")) {
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command.replace("%player%", player.getName()));
-        }
-
-        playEffects(player, key);
-        player.sendMessage(msg("used").replace("%key_name%", color(getKeyDisplay(key))));
-    }
-
-    private boolean isBlockedWorld(Player player) {
-        for (String world : getConfig().getStringList("blocked-worlds")) {
-            if (player.getWorld().getName().equalsIgnoreCase(world)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private boolean hasAnyKey(Player player, String key) {
-        return getKeys(player.getName(), key) > 0 || countPhysicalKeys(player, key) > 0;
-    }
-
-    private boolean takeOneKey(Player player, String key) {
-        int virtualKeys = getKeys(player.getName(), key);
-
-        if (virtualKeys > 0) {
-            setKeys(player.getName(), key, virtualKeys - 1);
-            return true;
-        }
-
-        return removePhysicalKey(player, key);
-    }
-
-    private int getTotalKeys(Player player, String key) {
-        return getKeys(player.getName(), key) + countPhysicalKeys(player, key);
-    }
-
-    private int countPhysicalKeys(Player player, String key) {
-        int amount = 0;
-
-        for (ItemStack item : player.getInventory().getContents()) {
-            if (key.equals(getKeyFromItem(item))) {
-                amount += item.getAmount();
-            }
-        }
-
-        return amount;
-    }
-
-    private boolean removePhysicalKey(Player player, String key) {
-        ItemStack[] contents = player.getInventory().getContents();
-
-        for (int i = 0; i < contents.length; i++) {
-            ItemStack item = contents[i];
-
-            if (!key.equals(getKeyFromItem(item))) {
-                continue;
-            }
-
-            if (item.getAmount() <= 1) {
-                player.getInventory().setItem(i, null);
-            } else {
-                item.setAmount(item.getAmount() - 1);
-                player.getInventory().setItem(i, item);
-            }
-
-            return true;
-        }
-
-        return false;
-    }
-
-    private ItemStack createKeyItem(String key, int amount) {
-        ItemStack item = new ItemStack(parseMaterial(getConfig().getString("key-item.material", "LIGHTNING_ROD")), Math.max(1, amount));
-        ItemMeta meta = item.getItemMeta();
-
-        if (meta != null) {
-            meta.setDisplayName(color(getConfig().getString("key-item.name", "&6&l%key_name%").replace("%key_name%", getKeyDisplay(key))));
-
-            List<String> lore = new ArrayList<>();
-
-            for (String line : getConfig().getStringList("key-item.lore")) {
-                lore.add(color(line.replace("%key%", key).replace("%key_name%", getKeyDisplay(key))));
-            }
-
-            meta.setLore(lore);
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-            meta.getPersistentDataContainer().set(keyTypeKey, PersistentDataType.STRING, key);
-            item.setItemMeta(meta);
-        }
-
-        return item;
-    }
-
-    private ItemStack createMenuItem() {
-        Material material = parseMaterial(getConfig().getString("menu-item.material", "COMPASS"));
-        ItemStack item = new ItemStack(material);
-        ItemMeta meta = item.getItemMeta();
-
-        if (meta != null) {
-            meta.setDisplayName(color(getConfig().getString("menu-item.name", "&6&lMSurvival Menu")));
-
-            List<String> lore = new ArrayList<>();
-
-            for (String line : getConfig().getStringList("menu-item.lore")) {
-                lore.add(color(line));
-            }
-
-            meta.setLore(lore);
-            item.setItemMeta(meta);
-        }
-
-        return item;
-    }
-
-    private String getKeyFromItem(ItemStack item) {
-        if (item == null || !item.hasItemMeta()) {
-            return null;
-        }
-
-        ItemMeta meta = item.getItemMeta();
-
-        if (meta == null) {
-            return null;
-        }
-
-        return meta.getPersistentDataContainer().get(keyTypeKey, PersistentDataType.STRING);
-    }
-
-    private void giveOwnerSet(Player player) {
-        player.getInventory().addItem(item(Material.NETHERITE_HELMET, "&b&lHełm MILEKZ", List.of("&8Set Właściciela", "&7Zdobycie zbroi &aNurt", "&bDiamentowy materiał"),
-                new String[][]{{"protection", "4"}, {"respiration", "3"}, {"aqua_affinity", "1"}, {"thorns", "3"}, {"unbreaking", "3"}, {"mending", "1"}}));
-
-        player.getInventory().addItem(item(Material.NETHERITE_CHESTPLATE, "&b&lNapierśnik MILEKZ", List.of("&8Set Właściciela", "&7Zdobycie zbroi &aNurt", "&bDiamentowy materiał"),
-                new String[][]{{"protection", "4"}, {"thorns", "3"}, {"unbreaking", "3"}, {"mending", "1"}}));
-
-        player.getInventory().addItem(item(Material.NETHERITE_LEGGINGS, "&b&lSpodnie MILEKZ", List.of("&8Set Właściciela", "&7Zdobycie zbroi &aNurt", "&aSzmaragdowy materiał"),
-                new String[][]{{"protection", "4"}, {"thorns", "3"}, {"unbreaking", "3"}, {"mending", "1"}}));
-
-        player.getInventory().addItem(item(Material.NETHERITE_BOOTS, "&b&lButy MILEKZ", List.of("&8Set Właściciela", "&7Zdobycie zbroi &aNurt", "&bDiamentowy materiał"),
-                new String[][]{{"protection", "4"}, {"feather_falling", "4"}, {"depth_strider", "3"}, {"soul_speed", "3"}, {"thorns", "3"}, {"unbreaking", "3"}, {"mending", "1"}}));
-
-        player.getInventory().addItem(item(Material.NETHERITE_SWORD, "&c&lMieczyk", List.of("&8Broń Właściciela"),
-                new String[][]{{"sharpness", "5"}, {"looting", "3"}, {"fire_aspect", "2"}, {"sweeping_edge", "3"}, {"knockback", "2"}, {"unbreaking", "3"}, {"mending", "1"}}));
-
-        player.getInventory().addItem(item(Material.NETHERITE_PICKAXE, "&b&lKilof MILEKZ", List.of("&8Narzędzie Właściciela"),
-                new String[][]{{"efficiency", "5"}, {"silk_touch", "1"}, {"unbreaking", "3"}, {"mending", "1"}}));
-
-        player.getInventory().addItem(item(Material.NETHERITE_AXE, "&b&lSiekiera MILEKZ", List.of("&8Narzędzie Właściciela"),
-                new String[][]{{"efficiency", "5"}, {"smite", "5"}, {"sharpness", "3"}, {"unbreaking", "3"}, {"mending", "1"}}));
-
-        player.getInventory().addItem(item(Material.NETHERITE_SHOVEL, "&b&lŁopata MILEKZ", List.of("&8Narzędzie Właściciela"),
-                new String[][]{{"efficiency", "5"}, {"silk_touch", "1"}, {"unbreaking", "3"}, {"mending", "1"}}));
-
-        player.getInventory().addItem(item(Material.NETHERITE_HOE, "&d&lMotyczka MILEKZ", List.of("&8Narzędzie Właściciela"),
-                new String[][]{{"efficiency", "5"}, {"silk_touch", "1"}, {"unbreaking", "3"}, {"mending", "1"}}));
-
-        player.getInventory().addItem(item(Material.BOW, "&e&lŁuk Boga", List.of("&8Broń Właściciela"),
-                new String[][]{{"power", "5"}, {"punch", "2"}, {"flame", "1"}, {"infinity", "1"}, {"unbreaking", "3"}, {"mending", "1"}}));
-
-        player.getInventory().addItem(item(Material.TRIDENT, "&3&lTrójząb MILEKZ", List.of("&8Broń Właściciela"),
-                new String[][]{{"impaling", "5"}, {"loyalty", "3"}, {"channeling", "1"}, {"unbreaking", "3"}, {"mending", "1"}}));
-
-        player.getInventory().addItem(item(parseMaterial("MACE"), "&4&lBuzdygan MILEKZ", List.of("&8Broń Właściciela", "&7Zdobycie broni &aNurt", "&bDiamentowy materiał"),
-                new String[][]{{"density", "5"}, {"breach", "3"}, {"smite", "5"}, {"fire_aspect", "2"}, {"unbreaking", "3"}, {"mending", "1"}}));
-
-        player.getInventory().addItem(item(Material.ELYTRA, "&f&lElytry MILEKZ", List.of("&8Elytry Właściciela"),
-                new String[][]{{"unbreaking", "3"}, {"mending", "1"}}));
-    }
-
-    private ItemStack item(Material material, String name, List<String> lore, String[][] enchantments) {
-        ItemStack item = new ItemStack(material);
-        ItemMeta meta = item.getItemMeta();
-
-        if (meta != null) {
-            meta.setDisplayName(color(name));
-
-            List<String> coloredLore = new ArrayList<>();
-
-            for (String line : lore) {
-                coloredLore.add(color(line));
-            }
-
-            meta.setLore(coloredLore);
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-            item.setItemMeta(meta);
-        }
-
-        for (String[] enchant : enchantments) {
-            Enchantment e = Enchantment.getByKey(NamespacedKey.minecraft(enchant[0]));
-
-            if (e != null) {
-                item.addUnsafeEnchantment(e, Integer.parseInt(enchant[1]));
-            }
-        }
-
-        return item;
-    }
-
-    private void playEffects(Player player, String key) {
-        if (!getConfig().getBoolean("effects.enabled", true)) {
-            return;
-        }
-
-        try {
-            Sound sound = Sound.valueOf(getConfig().getString("effects.sound", "ENTITY_PLAYER_LEVELUP"));
-            player.playSound(player.getLocation(), sound, 1.0f, 1.0f);
-        } catch (Exception ignored) {
-        }
-
-        player.sendTitle(
-                color(getConfig().getString("effects.title", "&6&lOTWIERANIE KLUCZA")),
-                color(getConfig().getString("effects.subtitle", "&7Użyto: &e%key_name%").replace("%key_name%", getKeyDisplay(key))),
-                10,
-                50,
-                10
-        );
-
-        if (getConfig().getBoolean("effects.fireworks", true)) {
-            spawnFirework(player);
-        }
-    }
-
-    private void spawnFirework(Player player) {
-        Firework firework = player.getWorld().spawn(player.getLocation(), Firework.class);
-        FireworkMeta meta = firework.getFireworkMeta();
-
-        meta.addEffect(FireworkEffect.builder()
-                .withColor(Color.ORANGE, Color.YELLOW)
-                .withFade(Color.RED)
-                .with(FireworkEffect.Type.BALL_LARGE)
-                .trail(true)
-                .flicker(true)
-                .build());
-
-        meta.setPower(1);
-        firework.setFireworkMeta(meta);
-    }
-
-    private void addKeys(String name, String key, int amount) {
-        setKeys(name, key, getKeys(name, key) + amount);
-    }
-
-    private int getKeys(String name, String key) {
-        return data.getInt(path(name) + ".keys." + normalize(key), 0);
-    }
-
-    private void setKeys(String name, String key, int amount) {
-        data.set(path(name) + ".keys." + normalize(key), Math.max(0, amount));
-        saveData();
-    }
-
-    private boolean keyExists(String key) {
-        return getConfig().contains("keys." + normalize(key));
-    }
-
-    private String getKeyDisplay(String key) {
-        return getConfig().getString("keys." + normalize(key) + ".display", key);
-    }
-
-    private int parseAmount(String value) {
-        try {
-            return Math.max(1, Integer.parseInt(value));
-        } catch (NumberFormatException e) {
-            return 1;
-        }
-    }
-
-    private Material parseMaterial(String value) {
-        try {
-            return Material.valueOf(value.toUpperCase(Locale.ROOT));
-        } catch (Exception e) {
-            return Material.STONE;
-        }
-    }
-
-    private void loadData() {
-        dataFile = new File(getDataFolder(), "data.yml");
-
-        if (!dataFile.exists()) {
-            try {
-                getDataFolder().mkdirs();
-                dataFile.createNewFile();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        data = YamlConfiguration.loadConfiguration(dataFile);
-    }
-
-    private void saveData() {
-        try {
-            data.save(dataFile);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private String path(String name) {
-        return "players." + normalize(name);
-    }
-
-    private String normalize(String s) {
-        return s == null ? "" : s.toLowerCase(Locale.ROOT);
-    }
-
-    private String msg(String key) {
-        return color(getConfig().getString("messages.prefix", "") + getConfig().getString("messages." + key, ""));
-    }
-
-    private String color(String text) {
-        if (text == null) {
-            return "";
-        }
-
-        return ChatColor.translateAlternateColorCodes('&', text);
-    }
-
-    private String formatTime(long millis) {
-        long sec = Math.max(0, millis / 1000L);
-        long days = sec / 86400L;
-        sec %= 86400L;
-        long hours = sec / 3600L;
-        sec %= 3600L;
-        long minutes = sec / 60L;
-
-        if (days > 0) return days + "d " + hours + "h";
-        if (hours > 0) return hours + "h " + minutes + "m";
-        if (minutes > 0) return minutes + "m";
-        return sec + "s";
-    }
+    private ItemStack enchant(Material mat,String name,String[][] ench){ ItemStack it=named(mat,name); for(String[] e:ench){ Enchantment en=Enchantment.getByKey(NamespacedKey.minecraft(e[0])); if(en!=null) it.addUnsafeEnchantment(en,Integer.parseInt(e[1])); } return it; }
+
+    private int parse(String s){ try{return Math.max(1,Integer.parseInt(s));}catch(Exception e){return 1;} }
+    private Material mat(String s){ try{return Material.valueOf(s.toUpperCase(Locale.ROOT));}catch(Exception e){return Material.STONE;} }
+    private String display(String key){ return getConfig().getString("keys."+key+".display", key); }
+    private String path(String player){ return "players."+player.toLowerCase(Locale.ROOT); }
+    private String norm(String s){ return s.toLowerCase(Locale.ROOT); }
+    private String msg(String k){ return color(getConfig().getString("messages.prefix","")+getConfig().getString("messages."+k,"")); }
+    private String color(String s){ return s==null?"":ChatColor.translateAlternateColorCodes('&',s); }
+    private String time(long ms){ long s=ms/1000,d=s/86400; s%=86400; long h=s/3600; s%=3600; long m=s/60; if(d>0)return d+"d "+h+"h"; if(h>0)return h+"h "+m+"m"; return Math.max(1,m)+"m"; }
+    private void loadData(){ dataFile=new File(getDataFolder(),"data.yml"); if(!dataFile.exists()){ try{getDataFolder().mkdirs(); dataFile.createNewFile();}catch(IOException e){e.printStackTrace();} } data=YamlConfiguration.loadConfiguration(dataFile); }
+    private void saveData(){ try{data.save(dataFile);}catch(IOException e){e.printStackTrace();} }
 }

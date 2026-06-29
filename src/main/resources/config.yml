@@ -1,103 +1,88 @@
 settings:
   cooldown-seconds: 604800
-  default-key: klasyczny
-
-weekly-random:
-  enabled: true
-  keys:
-    klasyczny: 85
-    zelazny: 15
 
 blocked-worlds:
   - Lobby
 
-menu-item:
-  enabled: true
-  give-on-join: false
-  material: COMPASS
-  slot: 4
-  name: "&6&lMSurvival Menu"
-  lore:
-    - "&8Nawigacja serwera"
-    - ""
-    - "&7Kliknij PPM, aby otworzyć menu."
-    - "&eLobby &8• &aSurvival &8• &6Klucze"
-    - ""
-    - "&7IP: &6msurvival.6mc.pl"
-
-weekly-menu:
+weekly:
   slot: 4
   material: CHEST
-  name: "&a&lOdbierz cotygodniowy klucz"
+  name: "&a&lCotygodniowy klucz"
   lore:
-    - "&8Darmowa nagroda"
-    - ""
-    - "&7Możesz dostać:"
-    - "&f• &fKlucz Klasyczny &8(85%)"
-    - "&f• &7Klucz Żelazny &8(15%)"
-    - ""
+    - "&7Nagroda co 7 dni."
     - "&7Status: %status%"
     - ""
-    - "&eKliknij, aby odebrać."
+    - "&f85% &7Klasyczny"
+    - "&f15% &7Żelazny"
+
+gui:
+  title: "&6&lKLUCZE I KITY"
+  filler: BLACK_STAINED_GLASS_PANE
 
 key-item:
   material: LIGHTNING_ROD
   name: "&6&l%key_name%"
   lore:
     - "&8MSurvival Key"
-    - ""
     - "&7Typ: &f%key_name%"
-    - "&7Użycie: &e/key use %key%"
     - ""
-    - "&6Kliknij PPM, aby użyć."
-
-gui:
-  keys-title: "&6&lKLUCZE SERWERA"
-  filler: BLACK_STAINED_GLASS_PANE
-
-effects:
-  enabled: true
-  sound: ENTITY_PLAYER_LEVELUP
-  title: "&6&lOTWIERANIE KLUCZA"
-  subtitle: "&7Użyto: &e%key_name%"
-  fireworks: true
-  animation: true
+    - "&eKliknij PPM, aby otworzyć kit."
 
 messages:
   prefix: "&6&lMSurvivalKeys &8» &r"
   no-permission: "&cNie masz uprawnień."
-  claimed: "&aOdebrałeś cotygodniowy klucz: &e%key_name%&a. Klucz trafił do ekwipunku."
-  cooldown: "&cCotygodniowy klucz możesz odebrać za: &e%time%&c."
-  no-keys: "&cNie masz tego klucza."
-  used: "&aUżyto klucza: &e%key_name%&a!"
-  menuitem-given: "&aOtrzymałeś item menu."
-  key-given-item: "&aOtrzymałeś fizyczny klucz: &e%key_name%&a."
-  admin-give: "&aDodano &e%amount%x %key_name% &adla &e%player%&a."
-  admin-reset: "&aZresetowano cooldown gracza &e%player%&a."
   reload: "&aPrzeładowano config."
-  usage-key: "&cUżycie: &e/key use <typ>"
-  usage-admin: "&cUżycie: &e/keyadmin <give|item|reset|reload> <gracz> [typ] [ilość]"
-  unknown-key: "&cNie ma takiego klucza."
-  cannot-use-in-lobby: "&cKluczy nie otwieraj w lobby. Wejdź na &e/survival&c i użyj klucza tam."
+  cooldown: "&cKlucz tygodniowy za: &e%time%"
+  claimed: "&aOdebrano: &e%key%"
+  no-key: "&cNie masz takiego klucza."
+  blocked: "&cKity otwieraj na survivalu, nie w lobby."
+  opened: "&aOtworzono kit: &e%kit%"
+  admin-give: "&aDodano klucz &e%key% &adla &e%player%&a."
+  admin-item: "&aDano fizyczny klucz &e%key% &adla &e%player%&a."
 
 keys:
   klasyczny:
     display: "&f&lKlucz Klasyczny"
-    material: LIGHTNING_ROD
-    price-info: "&7Dostępny za darmo co tydzień."
-    rewards:
-      - "give %player% copper_ingot 32"
-      - "give %player% iron_ingot 16"
-      - "give %player% bread 32"
-      - "give %player% shield 1"
-      - "give %player% stone_sword 1"
-      - "give %player% stone_pickaxe 1"
-      - "give %player% stone_hoe 1"
-
+    kit: klasyczny
   zelazny:
     display: "&7&lKlucz Żelazny"
-    material: LIGHTNING_ROD
-    price-info: "&7Lepszy start survivalowy."
+    kit: zelazny
+  diamentowy:
+    display: "&b&lKlucz Diamentowy"
+    kit: diamentowy
+  epic:
+    display: "&5&lKlucz Epic"
+    random-kits:
+      epic: 80
+      legendarny: 20
+  legendarny:
+    display: "&6&lKlucz Legendarny"
+    random-kits:
+      legendarny: 75
+      mityczny: 20
+      boski: 5
+  mityczny:
+    display: "&d&lKlucz Mityczny"
+    random-kits:
+      mityczny: 80
+      boski: 20
+  boski:
+    display: "&4&lKlucz Boski"
+    kit: boski
+
+weekly-random:
+  klasyczny: 85
+  zelazny: 15
+
+kits:
+  klasyczny:
+    rewards:
+      - "give %player% bread 32"
+      - "give %player% copper_ingot 32"
+      - "give %player% iron_ingot 16"
+      - "give %player% stone_sword 1"
+      - "give %player% stone_pickaxe 1"
+  zelazny:
     rewards:
       - "give %player% iron_helmet 1"
       - "give %player% iron_chestplate 1"
@@ -105,16 +90,10 @@ keys:
       - "give %player% iron_boots 1"
       - "give %player% iron_sword 1"
       - "give %player% iron_pickaxe 1"
-      - "give %player% iron_hoe 1"
       - "give %player% bow 1"
       - "give %player% arrow 32"
       - "give %player% golden_apple 2"
-      - "give %player% diamond 6"
-
   diamentowy:
-    display: "&b&lKlucz Diamentowy"
-    material: LIGHTNING_ROD
-    price-info: "&7Dobry klucz premium."
     rewards:
       - "give %player% diamond_helmet 1"
       - "give %player% diamond_chestplate 1"
@@ -122,16 +101,10 @@ keys:
       - "give %player% diamond_boots 1"
       - "give %player% diamond_sword 1"
       - "give %player% diamond_pickaxe 1"
-      - "give %player% diamond_hoe 1"
       - "give %player% bow 1"
       - "give %player% arrow 64"
       - "give %player% golden_apple 6"
-      - "give %player% emerald 16"
-
   epic:
-    display: "&5&lKlucz Epic"
-    material: LIGHTNING_ROD
-    price-info: "&7Mocny set z enchantami."
     rewards:
       - "give %player% diamond_helmet 1"
       - "give %player% diamond_chestplate 1"
@@ -139,16 +112,9 @@ keys:
       - "give %player% diamond_boots 1"
       - "give %player% diamond_sword 1"
       - "give %player% diamond_pickaxe 1"
-      - "give %player% diamond_hoe 1"
-      - "give %player% bow 1"
-      - "give %player% arrow 64"
       - "give %player% golden_apple 10"
       - "give %player% ender_pearl 16"
-
   legendarny:
-    display: "&6&lKlucz Legendarny"
-    material: LIGHTNING_ROD
-    price-info: "&7Bardzo dobry klucz."
     rewards:
       - "give %player% netherite_helmet 1"
       - "give %player% netherite_chestplate 1"
@@ -156,16 +122,9 @@ keys:
       - "give %player% netherite_boots 1"
       - "give %player% netherite_sword 1"
       - "give %player% netherite_pickaxe 1"
-      - "give %player% netherite_hoe 1"
-      - "give %player% bow 1"
-      - "give %player% arrow 64"
       - "give %player% golden_apple 16"
       - "give %player% netherite_ingot 4"
-
   mityczny:
-    display: "&d&lKlucz Mityczny"
-    material: LIGHTNING_ROD
-    price-info: "&7Najwyższy poziom premium."
     rewards:
       - "give %player% netherite_helmet 1"
       - "give %player% netherite_chestplate 1"
@@ -173,17 +132,10 @@ keys:
       - "give %player% netherite_boots 1"
       - "give %player% netherite_sword 1"
       - "give %player% netherite_pickaxe 1"
-      - "give %player% netherite_hoe 1"
-      - "give %player% bow 1"
-      - "give %player% arrow 64"
       - "give %player% golden_apple 24"
       - "give %player% enchanted_golden_apple 2"
       - "give %player% netherite_ingot 8"
-
   boski:
-    display: "&4&lKlucz Boski"
-    material: LIGHTNING_ROD
-    price-info: "&cTOP klucz z setem Właściciela."
     owner-set: true
     rewards:
       - "give %player% golden_apple 64"
