@@ -1,13 +1,13 @@
 name: MSurvivalKeys
-version: 3.2
+version: 4.0
 main: pl.msurvival.keys.MSurvivalKeys
 api-version: '1.21'
 author: Milekz
 
 commands:
-  menu:
-    description: Otwiera menu serwera
-    usage: /menu
+  keysmenu:
+    description: Otwiera menu kluczy
+    usage: /keysmenu
   menuitem:
     description: Daje item menu
     usage: /menuitem

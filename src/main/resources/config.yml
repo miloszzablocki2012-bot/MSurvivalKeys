@@ -40,7 +40,7 @@ key-item:
     - "&6Kliknij PPM, aby użyć."
 
 gui:
-  main-title: "&6&lMSURVIVAL MENU"
+  main-title: "&6&lKLUCZE SERWERA"
   keys-title: "&6&lKLUCZE SERWERA"
   size: 27
   filler: BLACK_STAINED_GLASS_PANE
@@ -85,7 +85,7 @@ messages:
   no-permission: "&cNie masz uprawnień."
   claimed: "&aOdebrałeś cotygodniowy klucz: &e%key_name%&a. Masz: &e%amount%&a."
   cooldown: "&cCotygodniowy klucz możesz odebrać za: &e%time%&c."
-  no-keys: "&cNie masz tego klucza. Odbierz go w &e/menu &club kup w sklepie."
+  no-keys: "&cNie masz tego klucza. Odbierz go w &e/keysmenu &club kup w sklepie."
   used: "&aUżyto klucza: &e%key_name%&a!"
   menuitem-given: "&aOtrzymałeś item menu."
   key-given-item: "&aOtrzymałeś fizyczny klucz: &e%key_name%&a."
